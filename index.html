@@ -151,6 +151,11 @@
         const outputDiv = document.getElementById('output');
         const errorDiv = document.getElementById('error');
 
+        // Load saved results on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            loadSavedResults();
+        });
+
         // Drag and drop handlers
         uploadArea.addEventListener('dragover', (e) => {
             e.preventDefault();
@@ -220,7 +225,8 @@
 
                 // Process the text (grep for "Anwesenheitszeit")
                 const results = processText(allText);
-                displayResults(results, allText);
+                displayResults(results);
+                saveResults(results);
 
             } catch (error) {
                 showError('Fehler beim Verarbeiten der PDF: ' + error.message);
@@ -254,7 +260,7 @@
             return matches;
         }
 
-        function displayResults(results, fullText) {
+        function displayResults(results) {
             resultsDiv.style.display = 'block';
 
             if (results.length === 0) {
@@ -288,6 +294,30 @@
             html += '</pre>';
 
             outputDiv.innerHTML = html;
+        }
+
+        function saveResults(results) {
+            try {
+                const data = {
+                    results: results,
+                    timestamp: new Date().toISOString()
+                };
+                localStorage.setItem('anwesenheitszeit_results', JSON.stringify(data));
+            } catch (error) {
+                console.error('Fehler beim Speichern der Ergebnisse:', error);
+            }
+        }
+
+        function loadSavedResults() {
+            try {
+                const saved = localStorage.getItem('anwesenheitszeit_results');
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    displayResults(data.results);
+                }
+            } catch (error) {
+                console.error('Fehler beim Laden der Ergebnisse:', error);
+            }
         }
 
         function showError(message) {

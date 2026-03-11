@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDF Anwesenheitszeit Extractor</title>
+    <title>Arbeitsplan</title>
     <style>
         * {
             box-sizing: border-box;
@@ -116,6 +116,30 @@
         p {
             margin: 0.3rem 0;
             font-size: 0.85rem;
+        }
+
+        .copy-btn {
+            display: inline-block;
+            padding: 0.4rem 0.8rem;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            margin-top: 0.25rem;
+        }
+
+        .copy-btn:hover {
+            background: #218838;
+        }
+
+        .copy-btn:active {
+            transform: scale(0.98);
+        }
+
+        .copy-btn.copied {
+            background: #6c757d;
         }
     </style>
 </head>
@@ -259,14 +283,36 @@
 
             html += '</tbody></table>';
 
-            // Show plain text with same info as table
-            html += '<pre style="margin-top: 0.75rem;">';
+            // Build plain text
+            let plainText = '';
             results.forEach(result => {
-                html += `${escapeHtml(result.field1)} ${escapeHtml(result.field2)} ${escapeHtml(result.field5)} ${escapeHtml(result.field6)}\n`;
+                plainText += `${result.field1} ${result.field2} ${result.field5} ${result.field6}\n`;
             });
+
+            // Show plain text with same info as table
+            html += '<pre id="plainText" style="margin-top: 0.75rem;">';
+            html += escapeHtml(plainText);
             html += '</pre>';
+            html += '<button class="copy-btn" onclick="copyToClipboard()">In Zwischenablage kopieren</button>';
 
             outputDiv.innerHTML = html;
+        }
+
+        function copyToClipboard() {
+            const plainText = document.getElementById('plainText').textContent;
+            navigator.clipboard.writeText(plainText).then(() => {
+                const btn = document.querySelector('.copy-btn');
+                const originalText = btn.textContent;
+                btn.textContent = 'Kopiert!';
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.classList.remove('copied');
+                }, 2000);
+            }).catch(err => {
+                console.error('Fehler beim Kopieren:', err);
+                alert('Fehler beim Kopieren in die Zwischenablage');
+            });
         }
 
         function saveResults(results) {

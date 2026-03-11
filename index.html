@@ -263,13 +263,21 @@
                     // Split by whitespace and filter empty strings
                     const fields = line.trim().split(/\s+/).filter(f => f);
 
-                    // Extract fields 1, 2, 5, 6 (0-indexed: 0, 1, 4, 5)
+                    // Fields: [0]=day, [1]=weekday, [2]="Anwesenheitszeit", [3]="(final)", [4]=von, [5]=bis
+                    // Then: numeric fields (Anw, Pause, Istzt, SpätZ, MAZ, Gesamt, Na/So/Ft)
+                    // Then: Kommentar (non-numeric, rest of line)
                     if (fields.length >= 6) {
+                        const isNumericField = (f) => /^\d+[,]\d+$/.test(f);
+                        let i = 6;
+                        while (i < fields.length && isNumericField(fields[i])) i++;
+                        const kommentar = fields.slice(i).join(' ');
+
                         matches.push({
                             field1: fields[0],
                             field2: fields[1],
                             field5: fields[4],
                             field6: fields[5],
+                            kommentar: kommentar,
                             fullLine: line
                         });
                     }
@@ -303,7 +311,7 @@
                 html += `<h3>${monthText}</h3>`;
             }
             html += '<table>';
-            html += '<thead><tr><th>Datum</th><th>Tag</th><th>Start</th><th>Ende</th></tr></thead>';
+            html += '<thead><tr><th>Datum</th><th>Tag</th><th>Start</th><th>Ende</th><th>Kommentar</th></tr></thead>';
             html += '<tbody>';
 
             results.forEach(result => {
@@ -312,6 +320,7 @@
                     <td>${escapeHtml(result.field2)}</td>
                     <td>${escapeHtml(result.field5)}</td>
                     <td>${escapeHtml(result.field6)}</td>
+                    <td>${escapeHtml(result.kommentar || '')}</td>
                 </tr>`;
             });
 
@@ -320,7 +329,8 @@
             // Build plain text
             let plainText = '';
             results.forEach(result => {
-                plainText += `${result.field1} ${result.field2} ${result.field5} ${result.field6}\n`;
+                const line = `${result.field1} ${result.field2} ${result.field5} ${result.field6}`;
+                plainText += result.kommentar ? `${line} ${result.kommentar}\n` : `${line}\n`;
             });
 
             // Show plain text with same info as table

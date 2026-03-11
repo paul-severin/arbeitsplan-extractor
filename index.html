@@ -141,6 +141,7 @@
         .copy-btn.copied {
             background: #6c757d;
         }
+
     </style>
 </head>
 <body>
@@ -224,9 +225,9 @@
                 }
 
                 // Process the text (grep for "Anwesenheitszeit")
-                const results = processText(allText);
-                displayResults(results);
-                saveResults(results);
+                const data = processText(allText);
+                displayResults(data);
+                saveResults(data);
 
             } catch (error) {
                 showError('Fehler beim Verarbeiten der PDF: ' + error.message);
@@ -238,8 +239,26 @@
         function processText(text) {
             const lines = text.split('\n');
             const matches = [];
+            let month = null;
 
+            // Extract month from "von: ... bis: ..." line
             lines.forEach(line => {
+                if (line.includes('von:') && line.includes('bis:')) {
+                    // Extract date after "von:"
+                    const vonMatch = line.match(/von:\s*(\d{2}\.\d{2}\.\d{4})/);
+                    if (vonMatch) {
+                        const dateStr = vonMatch[1]; // e.g., "01.03.2026"
+                        const parts = dateStr.split('.');
+                        if (parts.length === 3) {
+                            const monthNum = parseInt(parts[1], 10);
+                            const year = parts[2];
+                            const monthNames = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
+                                              'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+                            month = `${monthNames[monthNum - 1]} ${year}`;
+                        }
+                    }
+                }
+
                 if (line.includes('Anwesenheitszeit')) {
                     // Split by whitespace and filter empty strings
                     const fields = line.trim().split(/\s+/).filter(f => f);
@@ -257,18 +276,33 @@
                 }
             });
 
-            return matches;
+            return { matches, month };
         }
 
-        function displayResults(results) {
+        function displayResults(data) {
             resultsDiv.style.display = 'block';
 
-            if (results.length === 0) {
+            const results = data.matches || data.results || data;
+            const month = data.month || null;
+            const timestamp = data.timestamp || null;
+
+            if (!results || results.length === 0) {
                 outputDiv.innerHTML = '<p>Keine Einträge gefunden</p>';
                 return;
             }
 
-            let html = '<table>';
+            let html = '';
+            if (month) {
+                let monthText = escapeHtml(month);
+                if (timestamp) {
+                    const date = new Date(timestamp);
+                    const day = String(date.getDate()).padStart(2, '0');
+                    const monthNum = String(date.getMonth() + 1).padStart(2, '0');
+                    monthText += ` <span style="font-weight: normal; font-size: 0.85rem; color: #666;">(hochgeladen am ${day}.${monthNum}.)</span>`;
+                }
+                html += `<h3>${monthText}</h3>`;
+            }
+            html += '<table>';
             html += '<thead><tr><th>Datum</th><th>Tag</th><th>Start</th><th>Ende</th></tr></thead>';
             html += '<tbody>';
 
@@ -315,13 +349,14 @@
             });
         }
 
-        function saveResults(results) {
+        function saveResults(data) {
             try {
-                const data = {
-                    results: results,
+                const savedData = {
+                    matches: data.matches || data.results || data,
+                    month: data.month || null,
                     timestamp: new Date().toISOString()
                 };
-                localStorage.setItem('anwesenheitszeit_results', JSON.stringify(data));
+                localStorage.setItem('anwesenheitszeit_results', JSON.stringify(savedData));
             } catch (error) {
                 console.error('Fehler beim Speichern der Ergebnisse:', error);
             }
@@ -332,7 +367,7 @@
                 const saved = localStorage.getItem('anwesenheitszeit_results');
                 if (saved) {
                     const data = JSON.parse(saved);
-                    displayResults(data.results);
+                    displayResults(data);
                 }
             } catch (error) {
                 console.error('Fehler beim Laden der Ergebnisse:', error);

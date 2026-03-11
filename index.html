@@ -13,36 +13,15 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            padding: 2rem;
-            max-width: 1200px;
+            padding: 0.5rem;
             margin: 0 auto;
             background: #f5f5f5;
-        }
-
-        h1 {
-            margin-bottom: 1.5rem;
-            color: #333;
+            font-size: 0.9rem;
         }
 
         .upload-area {
-            background: white;
-            border: 2px dashed #ccc;
-            border-radius: 8px;
-            padding: 2rem;
             text-align: center;
-            margin-bottom: 2rem;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .upload-area:hover {
-            border-color: #007bff;
-            background: #f8f9fa;
-        }
-
-        .upload-area.dragover {
-            border-color: #007bff;
-            background: #e7f3ff;
+            margin-bottom: 1rem;
         }
 
         input[type="file"] {
@@ -51,41 +30,55 @@
 
         .btn {
             display: inline-block;
-            padding: 0.5rem 1rem;
+            padding: 0.6rem 1.2rem;
             background: #007bff;
             color: white;
             border: none;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 1rem;
+            font-size: 0.9rem;
+            width: 100%;
+            max-width: 300px;
         }
 
         .btn:hover {
             background: #0056b3;
         }
 
+        .btn:active {
+            transform: scale(0.98);
+        }
+
         #loading {
             display: none;
             text-align: center;
-            padding: 1rem;
+            padding: 0.5rem;
             color: #666;
+            font-size: 0.85rem;
         }
 
         #results {
             background: white;
-            border-radius: 8px;
-            padding: 1.5rem;
+            border-radius: 4px;
+            padding: 0.75rem;
             display: none;
+        }
+
+        h2, h3 {
+            font-size: 1rem;
+            margin: 0.5rem 0;
+            font-weight: 600;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 1rem;
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
         }
 
         th, td {
-            padding: 0.75rem;
+            padding: 0.4rem;
             text-align: left;
             border-bottom: 1px solid #eee;
         }
@@ -94,6 +87,7 @@
             background: #f8f9fa;
             font-weight: 600;
             color: #333;
+            font-size: 0.8rem;
         }
 
         tr:hover {
@@ -111,31 +105,31 @@
 
         pre {
             background: #f4f4f4;
-            padding: 1rem;
+            padding: 0.5rem;
             border-radius: 4px;
             overflow-x: auto;
-            margin-top: 1rem;
-            font-size: 0.9rem;
+            margin-top: 0.5rem;
+            font-size: 0.75rem;
+            line-height: 1.3;
+        }
+
+        p {
+            margin: 0.3rem 0;
+            font-size: 0.85rem;
         }
     </style>
 </head>
 <body>
-    <h1>PDF Anwesenheitszeit Extractor</h1>
-
     <div class="upload-area" id="uploadArea">
         <input type="file" id="fileInput" accept=".pdf">
-        <p style="margin-bottom: 1rem;">PDF-Datei hier ablegen oder klicken zum Auswählen</p>
-        <button class="btn" onclick="document.getElementById('fileInput').click()">PDF auswählen</button>
+        <button class="btn" onclick="document.getElementById('fileInput').click()">PDF hochladen</button>
     </div>
 
-    <div id="loading">
-        <p>PDF wird verarbeitet...</p>
-    </div>
+    <div id="loading">Wird verarbeitet...</div>
 
     <div id="error"></div>
 
     <div id="results">
-        <h2>Ergebnisse</h2>
         <div id="output"></div>
     </div>
 
@@ -157,24 +151,6 @@
         });
 
         // Drag and drop handlers
-        uploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadArea.classList.add('dragover');
-        });
-
-        uploadArea.addEventListener('dragleave', () => {
-            uploadArea.classList.remove('dragover');
-        });
-
-        uploadArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadArea.classList.remove('dragover');
-
-            const files = e.dataTransfer.files;
-            if (files.length > 0 && files[0].type === 'application/pdf') {
-                handleFile(files[0]);
-            }
-        });
 
         fileInput.addEventListener('change', (e) => {
             if (e.target.files.length > 0) {
@@ -264,13 +240,11 @@
             resultsDiv.style.display = 'block';
 
             if (results.length === 0) {
-                outputDiv.innerHTML = '<p>Keine Zeilen mit "Anwesenheitszeit" gefunden.</p>';
+                outputDiv.innerHTML = '<p>Keine Einträge gefunden</p>';
                 return;
             }
 
-            let html = `<h3>Tabelle</h3>`;
-            html += `<p>${results.length} Zeile(n) gefunden:</p>`;
-            html += '<table>';
+            let html = '<table>';
             html += '<thead><tr><th>Datum</th><th>Tag</th><th>Start</th><th>Ende</th></tr></thead>';
             html += '<tbody>';
 
@@ -286,8 +260,7 @@
             html += '</tbody></table>';
 
             // Show plain text with same info as table
-            html += '<h3 style="margin-top: 2rem;">Textansicht:</h3>';
-            html += '<pre>';
+            html += '<pre style="margin-top: 0.75rem;">';
             results.forEach(result => {
                 html += `${escapeHtml(result.field1)} ${escapeHtml(result.field2)} ${escapeHtml(result.field5)} ${escapeHtml(result.field6)}\n`;
             });

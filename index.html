@@ -134,7 +134,7 @@
             align-items: center;
             gap: 0.4rem;
             padding: 0.4rem 0.8rem;
-            background: #4caf72;
+            background: #5b9fd4;
             color: white;
             border: none;
             border-radius: 4px;
@@ -144,7 +144,7 @@
         }
 
         .copy-btn:hover {
-            background: #3d9e62;
+            background: #4a8ec4;
         }
 
         .copy-btn:active {
@@ -201,17 +201,9 @@
         }
 
         .toggle-past-link {
-            background: none;
-            border: none;
-            cursor: pointer;
             color: #6c757d;
             font-size: 0.85rem;
-            padding: 0;
             line-height: 1;
-        }
-
-        .toggle-past-link:hover {
-            color: #343a40;
         }
 
         tr.past-day td {
@@ -473,7 +465,7 @@
             });
 
             const separator = pastRows
-                ? `<tr class="past-separator"><td colspan="5"><span class="past-separator-inner"><span class="past-separator-label">vergangene Tage ausgeblendet</span><button class="toggle-past-link" onclick="togglePastDays()">▼</button></span></td></tr>`
+                ? `<tr class="past-separator" onclick="togglePastDays()" style="cursor:pointer;"><td colspan="5"><span class="past-separator-inner"><span class="past-separator-label">vergangene Tage ausgeblendet</span><span class="toggle-past-link">▼</span></span></td></tr>`
                 : '';
 
             html += separator + pastRows + futureRows;
@@ -487,7 +479,7 @@
             });
 
             html += `<div id="plainText" style="display:none">${escapeHtml(plainText)}</div>`;
-            html += '<button class="copy-btn" style="margin-top:0.75rem;" onclick="copyToClipboard()"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Als Text kopieren</button>';
+            html += '<div style="text-align:center; margin-top:0.75rem;"><button class="copy-btn" onclick="copyToClipboard()"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Als Text kopieren</button></div>';
 
             outputDiv.innerHTML = html;
         }

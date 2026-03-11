@@ -243,6 +243,37 @@
         tr.past-day.show:not(:has(+ tr.past-day.show)) td:first-child { border-bottom-left-radius: 6px; }
         tr.past-day.show:not(:has(+ tr.past-day.show)) td:last-child  { border-bottom-right-radius: 6px; }
 
+        tr.filler-row td {
+            color: #bbb;
+            font-size: 0.8rem;
+            background: #f5f5f5;
+        }
+
+        tr.filler-row:hover td {
+            background: #f5f5f5;
+        }
+
+        .toggle-pill {
+            display: inline-flex;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            overflow: hidden;
+            font-size: 0.78rem;
+            cursor: pointer;
+        }
+
+        .toggle-pill span {
+            padding: 0.2rem 0.65rem;
+            color: #999;
+            transition: background 0.15s, color 0.15s;
+            user-select: none;
+        }
+
+        .toggle-pill span.active {
+            background: #495057;
+            color: white;
+        }
+
         .next-shift-banner {
             background: #e9ecef;
             border-radius: 8px;
@@ -446,6 +477,8 @@
             let pastRows = '';
             let futureRows = '';
             let nextShiftStart = null;
+            let prevDay = null;
+            let prevIsPast = false;
 
             results.forEach(result => {
                 let isPast = false;
@@ -458,6 +491,17 @@
                         rowDate.setHours(0, 0, 0, 0);
                         isPast = rowDate < today;
                     }
+                }
+
+                // Insert filler row if there's a gap of at least 1 day
+                if (rowDay !== null && prevDay !== null && rowDay - prevDay > 1) {
+                    const gapDays = rowDay - prevDay - 1;
+                    const label = gapDays === 1 ? '1 Tag frei' : `${gapDays} Tage frei`;
+                    const fillerRow = `<tr class="${prevIsPast ? 'past-day filler-row' : 'filler-row'}">
+                        <td></td><td colspan="4">${label}</td>
+                    </tr>`;
+                    if (prevIsPast) pastRows += fillerRow;
+                    else futureRows += fillerRow;
                 }
 
                 if (!isPast && rowDay && result.field5) {
@@ -481,10 +525,16 @@
 
                 if (isPast) pastRows += row;
                 else futureRows += row;
+
+                if (rowDay !== null) {
+                    prevDay = rowDay;
+                    prevIsPast = isPast;
+                }
             });
 
+            const bannerOn = localStorage.getItem('showNextShift') !== 'false';
             if (nextShiftStart) {
-                html += `<div class="next-shift-banner" id="next-shift-banner"></div>`;
+                html += `<div class="next-shift-banner" id="next-shift-banner" style="${bannerOn ? '' : 'display:none'}"></div>`;
             }
 
             const separator = pastRows
@@ -506,8 +556,27 @@
 
             html += `<div id="plainText" style="display:none">${escapeHtml(plainText)}</div>`;
             html += '<div style="text-align:center; margin-top:0.75rem;"><button class="copy-btn" onclick="copyToClipboard()"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Als Text kopieren</button></div>';
+            html += '<h3 style="margin-top:1rem;">Einstellungen</h3>';
+            html += '<div style="margin-top:0.4rem; font-size:0.85rem; color:#666; display:flex; align-items:center; gap:0.75rem;">';
+            const fillerOn = localStorage.getItem('showFillerRows') !== 'false';
+            html += '<div class="toggle-pill" onclick="toggleFillerPill(this)">';
+            html += `<span class="${fillerOn ? 'active' : ''}">An</span><span class="${fillerOn ? '' : 'active'}">Aus</span>`;
+            html += '</div>';
+            html += '<span>Zeilen für freie Tage anzeigen</span>';
+            html += '</div>';
+            html += '<div style="margin-top:0.4rem; font-size:0.85rem; color:#666; display:flex; align-items:center; gap:0.75rem;">';
+            const bannerOnSetting = localStorage.getItem('showNextShift') !== 'false';
+            html += '<div class="toggle-pill" onclick="toggleBannerPill(this)">';
+            html += `<span class="${bannerOnSetting ? 'active' : ''}">An</span><span class="${bannerOnSetting ? '' : 'active'}">Aus</span>`;
+            html += '</div>';
+            html += '<span>„Nächste Schicht in" anzeigen</span>';
+            html += '</div>';
 
             outputDiv.innerHTML = html;
+
+            if (localStorage.getItem('showFillerRows') === 'false') {
+                document.querySelectorAll('tr.filler-row').forEach(row => row.style.display = 'none');
+            }
 
             if (nextShiftStart) startCountdownTimer(nextShiftStart);
         }
@@ -533,7 +602,9 @@
             const hours = Math.floor((totalMinutes % 1440) / 60);
             const mins = totalMinutes % 60;
             if (days >= 1) {
-                return days === 1 ? 'in 1 Tag' : `in ${days} Tagen`;
+                const half = hours >= 12 ? 0.5 : 0;
+                const total = days + half;
+                return total === 1 ? 'in 1 Tag' : `in ${total} Tagen`;
             }
             if (hours > 0) return `in ${hours}h ${mins}m`;
             return `in ${mins}m`;
@@ -554,6 +625,27 @@
                 console.error('Fehler beim Kopieren:', err);
                 alert('Fehler beim Kopieren in die Zwischenablage');
             });
+        }
+
+        function toggleFillerPill(pill) {
+            const [on, off] = pill.querySelectorAll('span');
+            const isOn = on.classList.contains('active');
+            on.classList.toggle('active', !isOn);
+            off.classList.toggle('active', isOn);
+            document.querySelectorAll('tr.filler-row').forEach(row => {
+                row.style.display = isOn ? 'none' : '';
+            });
+            localStorage.setItem('showFillerRows', isOn ? 'false' : 'true');
+        }
+
+        function toggleBannerPill(pill) {
+            const [on, off] = pill.querySelectorAll('span');
+            const isOn = on.classList.contains('active');
+            on.classList.toggle('active', !isOn);
+            off.classList.toggle('active', isOn);
+            const banner = document.getElementById('next-shift-banner');
+            if (banner) banner.style.display = isOn ? 'none' : '';
+            localStorage.setItem('showNextShift', isOn ? 'false' : 'true');
         }
 
         function togglePastDays() {

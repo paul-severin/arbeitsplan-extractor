@@ -72,7 +72,8 @@
 
         table {
             width: 100%;
-            border-collapse: collapse;
+            border-collapse: separate;
+            border-spacing: 0;
             margin-top: 0.5rem;
             font-size: 0.85rem;
         }
@@ -81,6 +82,16 @@
             padding: 0.4rem;
             text-align: left;
             border-bottom: 1px solid #eee;
+        }
+
+        th:first-child, td:first-child {
+            text-align: right;
+        }
+
+        th:not(:last-child), td:not(:last-child) {
+            width: 1%;
+            white-space: nowrap;
+            padding-right: 1rem;
         }
 
         th {
@@ -119,9 +130,11 @@
         }
 
         .copy-btn {
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
             padding: 0.4rem 0.8rem;
-            background: #28a745;
+            background: #4caf72;
             color: white;
             border: none;
             border-radius: 4px;
@@ -131,7 +144,7 @@
         }
 
         .copy-btn:hover {
-            background: #218838;
+            background: #3d9e62;
         }
 
         .copy-btn:active {
@@ -141,6 +154,102 @@
         .copy-btn.copied {
             background: #6c757d;
         }
+
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .upload-icon-btn {
+            background: none;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            cursor: pointer;
+            padding: 0.3rem;
+            color: #6c757d;
+            display: flex;
+            align-items: center;
+        }
+
+        .upload-icon-btn:hover {
+            background: #f8f9fa;
+            color: #343a40;
+        }
+
+        .past-separator td {
+            background: #d0d4d9;
+            padding: 0.15rem 0.4rem;
+            border-top: 1px solid #dee2e6;
+            border-left: 1px solid #dee2e6;
+            border-right: 1px solid #dee2e6;
+            border-bottom: 1px solid #dee2e6;
+            border-top-left-radius: 6px;
+            border-top-right-radius: 6px;
+        }
+
+        .past-separator-inner {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .past-separator-label {
+            color: #6c757d;
+            font-size: 0.8rem;
+        }
+
+        .toggle-past-link {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #6c757d;
+            font-size: 0.85rem;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .toggle-past-link:hover {
+            color: #343a40;
+        }
+
+        tr.past-day td {
+            max-height: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+            line-height: 0;
+            overflow: hidden;
+            opacity: 0;
+            border: none;
+            transition: max-height 0.25s ease, padding 0.25s ease, opacity 0.25s ease, line-height 0.25s ease;
+        }
+
+        tr.past-day.show td {
+            max-height: 3rem;
+            padding-top: 0.4rem;
+            padding-bottom: 0.4rem;
+            line-height: 1.4;
+            opacity: 1;
+            background: #e9ecef;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        tr.past-day.show td:first-child { border-left: 1px solid #dee2e6; }
+        tr.past-day.show td:last-child  { border-right: 1px solid #dee2e6; }
+
+        /* no top border on first past row — separator row is the top of the box */
+        tr.past-separator + tr.past-day.show td { border-top: none; }
+
+        /* when collapsed, round the bottom corners of the separator too */
+        tr.past-separator:not(:has(+ tr.past-day.show)) td {
+            border-bottom-left-radius: 6px;
+            border-bottom-right-radius: 6px;
+        }
+
+        /* rounded bottom corners on last past row */
+        tr.past-day.show:not(:has(+ tr.past-day.show)) td:first-child { border-bottom-left-radius: 6px; }
+        tr.past-day.show:not(:has(+ tr.past-day.show)) td:last-child  { border-bottom-right-radius: 6px; }
 
     </style>
 </head>
@@ -289,6 +398,7 @@
 
         function displayResults(data) {
             resultsDiv.style.display = 'block';
+            uploadArea.style.display = 'none';
 
             const results = data.matches || data.results || data;
             const month = data.month || null;
@@ -299,7 +409,11 @@
                 return;
             }
 
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
             let html = '';
+            html += '<div class="header-row">';
             if (month) {
                 let monthText = escapeHtml(month);
                 if (timestamp) {
@@ -308,37 +422,72 @@
                     const monthNum = String(date.getMonth() + 1).padStart(2, '0');
                     monthText += ` <span style="font-weight: normal; font-size: 0.85rem; color: #666;">(hochgeladen am ${day}.${monthNum}.)</span>`;
                 }
-                html += `<h3>${monthText}</h3>`;
+                html += `<h3 style="margin: 0;">${monthText}</h3>`;
+            } else {
+                html += `<h3 style="margin: 0;">Arbeitsplan</h3>`;
             }
+            html += `<button class="upload-icon-btn" onclick="document.getElementById('fileInput').click()" title="PDF hochladen"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></button>`;
+            html += '</div>';
             html += '<table>';
             html += '<thead><tr><th>Datum</th><th>Tag</th><th>Start</th><th>Ende</th><th>Kommentar</th></tr></thead>';
             html += '<tbody>';
 
+            // Extract year and month number from month string (e.g. "März 2026")
+            const monthNames = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
+                              'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+            let pdfYear = today.getFullYear();
+            let pdfMonthNum = today.getMonth() + 1;
+            if (month) {
+                const yearMatch = month.match(/\d{4}/);
+                if (yearMatch) pdfYear = parseInt(yearMatch[0], 10);
+                const monthName = month.replace(/\s*\d{4}$/, '').trim();
+                const idx = monthNames.indexOf(monthName);
+                if (idx !== -1) pdfMonthNum = idx + 1;
+            }
+
+            let pastRows = '';
+            let futureRows = '';
+
             results.forEach(result => {
-                html += `<tr>
+                let isPast = false;
+                if (result.field1) {
+                    const dateMatch = result.field1.match(/(\d{1,2})/);
+                    if (dateMatch) {
+                        const day = parseInt(dateMatch[1], 10);
+                        const rowDate = new Date(pdfYear, pdfMonthNum - 1, day);
+                        rowDate.setHours(0, 0, 0, 0);
+                        isPast = rowDate < today;
+                    }
+                }
+
+                const row = `<tr class="${isPast ? 'past-day' : ''}">
                     <td>${escapeHtml(result.field1)}</td>
                     <td>${escapeHtml(result.field2)}</td>
                     <td>${escapeHtml(result.field5)}</td>
                     <td>${escapeHtml(result.field6)}</td>
                     <td>${escapeHtml(result.kommentar || '')}</td>
                 </tr>`;
+
+                if (isPast) pastRows += row;
+                else futureRows += row;
             });
 
+            const separator = pastRows
+                ? `<tr class="past-separator"><td colspan="5"><span class="past-separator-inner"><span class="past-separator-label">vergangene Tage ausgeblendet</span><button class="toggle-past-link" onclick="togglePastDays()">▼</button></span></td></tr>`
+                : '';
+
+            html += separator + pastRows + futureRows;
             html += '</tbody></table>';
 
-            // Build plain text
+            // Build plain text for clipboard
             let plainText = '';
             results.forEach(result => {
                 const line = `${result.field1} ${result.field2} ${result.field5} ${result.field6}`;
                 plainText += result.kommentar ? `${line} ${result.kommentar}\n` : `${line}\n`;
             });
 
-            // Show plain text with same info as table
-            html += '<h4 style="font-size: 0.85rem; margin-top: 1rem; margin-bottom: 0.25rem; font-weight: 600;">Zum Kopieren:</h4>';
-            html += '<pre id="plainText" style="margin-top: 0.25rem;">';
-            html += escapeHtml(plainText);
-            html += '</pre>';
-            html += '<button class="copy-btn" onclick="copyToClipboard()">In Zwischenablage kopieren</button>';
+            html += `<div id="plainText" style="display:none">${escapeHtml(plainText)}</div>`;
+            html += '<button class="copy-btn" style="margin-top:0.75rem;" onclick="copyToClipboard()"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Als Text kopieren</button>';
 
             outputDiv.innerHTML = html;
         }
@@ -358,6 +507,17 @@
                 console.error('Fehler beim Kopieren:', err);
                 alert('Fehler beim Kopieren in die Zwischenablage');
             });
+        }
+
+        function togglePastDays() {
+            const pastRows = document.querySelectorAll('tr.past-day');
+            const btn = document.querySelector('.toggle-past-link');
+            const label = document.querySelector('.past-separator-label');
+            const isShowing = pastRows.length > 0 && pastRows[0].classList.contains('show');
+
+            pastRows.forEach(row => row.classList.toggle('show', !isShowing));
+            btn.textContent = isShowing ? '▼' : '▲';
+            label.textContent = isShowing ? 'vergangene Tage ausgeblendet' : 'vergangene Tage';
         }
 
         function saveResults(data) {

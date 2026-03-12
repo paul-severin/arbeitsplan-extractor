@@ -311,6 +311,7 @@
             display: flex;
             align-items: center;
             flex-shrink: 0;
+            gap: 0.3rem;
         }
 
         .alarm-shortcut-btn:hover {
@@ -318,36 +319,54 @@
         }
 
         .alarm-offset-input {
-            width: 4rem;
             padding: 0.25rem 0.4rem;
             border: 1px solid #dee2e6;
             border-radius: 4px;
             font-size: 0.85rem;
-            text-align: center;
             color: #333;
+            background: white;
         }
 
         .alarm-offset-row {
             display: flex;
+            align-items: stretch;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 0.4rem;
+            background: white;
+        }
+
+        .alarm-offset-row .alarm-offset-input {
+            border: none;
+            border-right: 1px solid #dee2e6;
+            border-radius: 0;
+        }
+
+        .alarm-offset-label {
+            flex: 1;
+            display: flex;
             align-items: center;
-            gap: 0.5rem;
-            margin-bottom: 0.35rem;
+            padding: 0 0.75rem;
+            font-size: 0.82rem;
+            color: #666;
+            border-right: 1px solid #dee2e6;
         }
 
         .alarm-offset-remove {
             background: none;
-            border: 1px solid #dee2e6;
-            border-radius: 4px;
+            border: none;
+            border-radius: 0;
             cursor: pointer;
-            padding: 0.15rem 0.45rem;
+            padding: 0.15rem 0.65rem;
             color: #6c757d;
-            font-size: 0.85rem;
-            line-height: 1.4;
+            font-size: 0.9rem;
+            line-height: 1;
+            flex-shrink: 0;
         }
 
         .alarm-offset-remove:hover {
             background: #fee;
-            border-color: #fcc;
             color: #c33;
         }
 
@@ -697,18 +716,27 @@
 
             // Alarm offsets section
             html += '<div style="margin-top:1rem; font-size:0.85rem; font-weight:600; color:#333;">Alarm-Zeiten</div>';
-            html += '<div style="font-size:0.82rem; color:#888; margin-top:0.1rem; margin-bottom:0.4rem;">Minuten vor Schichtbeginn</div>';
+            html += '<div style="margin-bottom:0.4rem;"></div>';
+            const currentStep = getAlarmOffsetStep();
+            html += `<div style="font-size:0.82rem; color:#666; display:flex; align-items:center; gap:0.5rem; margin-bottom:0.5rem;">
+                <span>Schrittweite:</span>
+                <select class="alarm-offset-input" onchange="saveAlarmOffsetStep(this.value)">
+                    ${[1,5,10,15,30].map(s => `<option value="${s}"${s === currentStep ? ' selected' : ''}>${s} min</option>`).join('')}
+                </select>
+            </div>`;
+            html += '<div style="width:200px">';
             html += '<div id="alarm-offsets-list">';
             const alarmOffsets = getAlarmOffsets();
             alarmOffsets.forEach(offset => {
                 html += `<div class="alarm-offset-row">
-                    <input type="number" min="1" max="1440" value="${offset}" class="alarm-offset-input" onchange="saveAlarmOffsetsFromUI()">
-                    <span style="font-size:0.82rem; color:#666;">min vorher</span>
+                    <select class="alarm-offset-input" onchange="saveAlarmOffsetsFromUI()">${buildOffsetOptions(offset)}</select>
+                    <span class="alarm-offset-label">min vorher</span>
                     <button class="alarm-offset-remove" onclick="removeAlarmOffset(this)" title="Entfernen">×</button>
                 </div>`;
             });
             html += '</div>';
             html += '<button class="alarm-offset-add" onclick="addAlarmOffset()">+ Hinzufügen</button>';
+            html += '</div>';
 
             outputDiv.innerHTML = html;
 
@@ -736,6 +764,35 @@
             textEl.textContent = ms <= 0 ? 'Nächste Schicht: jetzt' : `Nächste Schicht ${formatCountdown(ms)}`;
         }
 
+        function getAlarmOffsetStep() {
+            return parseInt(localStorage.getItem('alarmOffsetStep') || '5', 10);
+        }
+
+        function buildOffsetOptions(selected) {
+            const step = getAlarmOffsetStep();
+            let html = '';
+            for (let m = 0; m <= 300; m += step) {
+                html += `<option value="${m}"${m === selected ? ' selected' : ''}>${m}</option>`;
+            }
+            // If selected value isn't in the step grid, add it so it doesn't silently reset
+            if (selected % step !== 0 && selected >= 0 && selected <= 300) {
+                html += `<option value="${selected}" selected>${selected}</option>`;
+            }
+            return html;
+        }
+
+        function saveAlarmOffsetStep(val) {
+            localStorage.setItem('alarmOffsetStep', val);
+            // Rebuild all offset selects with new step, snapping values to nearest multiple
+            const step = parseInt(val, 10);
+            document.querySelectorAll('#alarm-offsets-list .alarm-offset-input').forEach(sel => {
+                const cur = parseInt(sel.value, 10);
+                const snapped = Math.min(300, Math.round(cur / step) * step);
+                sel.innerHTML = buildOffsetOptions(snapped);
+            });
+            saveAlarmOffsetsFromUI();
+        }
+
         function getAlarmOffsets() {
             try {
                 const saved = localStorage.getItem('alarmOffsets');
@@ -751,7 +808,7 @@
             const inputs = document.querySelectorAll('#alarm-offsets-list .alarm-offset-input');
             const offsets = Array.from(inputs)
                 .map(i => parseInt(i.value, 10))
-                .filter(v => !isNaN(v) && v > 0);
+                .filter(v => !isNaN(v) && v >= 0);
             localStorage.setItem('alarmOffsets', JSON.stringify(offsets));
         }
 
@@ -759,11 +816,12 @@
             const list = document.getElementById('alarm-offsets-list');
             const inputs = list.querySelectorAll('.alarm-offset-input');
             const lastVal = inputs.length > 0 ? parseInt(inputs[inputs.length - 1].value, 10) : 15;
-            const newVal = (isNaN(lastVal) ? 15 : lastVal) + 15;
+            const rawNew = (isNaN(lastVal) ? 15 : lastVal) + 15;
+            const newVal = Math.min(300, Math.round(rawNew / 5) * 5);
             const div = document.createElement('div');
             div.className = 'alarm-offset-row';
-            div.innerHTML = `<input type="number" min="1" max="1440" value="${newVal}" class="alarm-offset-input" onchange="saveAlarmOffsetsFromUI()">
-                <span style="font-size:0.82rem; color:#666;">min vorher</span>
+            div.innerHTML = `<select class="alarm-offset-input" onchange="saveAlarmOffsetsFromUI()">${buildOffsetOptions(newVal)}</select>
+                <span class="alarm-offset-label">min vorher</span>
                 <button class="alarm-offset-remove" onclick="removeAlarmOffset(this)" title="Entfernen">×</button>`;
             list.appendChild(div);
             saveAlarmOffsetsFromUI();

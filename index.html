@@ -79,7 +79,7 @@
         }
 
         th, td {
-            padding: 0.4rem;
+            padding: 0.4rem 0;
             text-align: left;
             border-bottom: 1px solid #eee;
         }
@@ -91,7 +91,7 @@
         th:not(:last-child), td:not(:last-child) {
             width: 1%;
             white-space: nowrap;
-            padding-right: 1rem;
+            padding-right: 0.75rem;
         }
 
         th {
@@ -180,7 +180,7 @@
 
         .past-separator td {
             background: #d0d4d9;
-            padding: 0.15rem 0.4rem;
+            padding: 0.35rem 0.4rem;
             border-top: 1px solid #dee2e6;
             border-left: 1px solid #dee2e6;
             border-right: 1px solid #dee2e6;
@@ -333,7 +333,7 @@
                 const arrayBuffer = await file.arrayBuffer();
                 const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
 
-                let allText = '';
+                const allLines = [];
 
                 // Extract text from all pages
                 for (let i = 1; i <= pdf.numPages; i++) {
@@ -356,17 +356,16 @@
                     // Sort lines by y-coordinate (top to bottom)
                     const sortedY = Object.keys(lines).sort((a, b) => b - a);
 
-                    // Build text with layout
+                    // Collect structured lines preserving x positions
                     for (const y of sortedY) {
                         // Sort items in line by x-coordinate (left to right)
                         lines[y].sort((a, b) => a.x - b.x);
-                        const lineText = lines[y].map(item => item.text).join(' ');
-                        allText += lineText + '\n';
+                        allLines.push(lines[y]);
                     }
                 }
 
-                // Process the text (grep for "Anwesenheitszeit")
-                const data = processText(allText);
+                // Process the structured lines (grep for "Anwesenheitszeit")
+                const data = processText(allLines);
                 displayResults(data);
                 saveResults(data);
 
@@ -377,15 +376,22 @@
             }
         }
 
-        function processText(text) {
-            const lines = text.split('\n');
+        function processText(allLines) {
             const matches = [];
             let month = null;
 
-            // Extract month from "von: ... bis: ..." line
-            lines.forEach(line => {
+            // Pass 1 — find x-position of "Pause" column header
+            let pauseColX = null;
+            for (const lineItems of allLines) {
+                const pauseItem = lineItems.find(item => item.text === 'Pause');
+                if (pauseItem) { pauseColX = pauseItem.x; break; }
+            }
+
+            // Pass 2 — extract data
+            for (const lineItems of allLines) {
+                const line = lineItems.map(i => i.text).join(' ');
+
                 if (line.includes('von:') && line.includes('bis:')) {
-                    // Extract date after "von:"
                     const vonMatch = line.match(/von:\s*(\d{2}\.\d{2}\.\d{4})/);
                     if (vonMatch) {
                         const dateStr = vonMatch[1]; // e.g., "01.03.2026"
@@ -413,17 +419,25 @@
                         while (i < fields.length && isNumericField(fields[i])) i++;
                         const kommentar = fields.slice(i).join(' ');
 
+                        // Use x-coordinate matching for Pause to avoid wrong index when break is absent
+                        const pauseItem = pauseColX !== null
+                            ? lineItems.find(item => item.text.trim() !== '' && Math.abs(item.x - pauseColX) < 25)
+                            : null;
+                        const pause = pauseItem ? pauseItem.text : '';
+
                         matches.push({
                             field1: fields[0],
                             field2: fields[1],
                             field5: fields[4],
                             field6: fields[5],
+                            arbeitszeit: fields[6] || '',  // Duration (Anw)
+                            pause: pause,
                             kommentar: kommentar,
                             fullLine: line
                         });
                     }
                 }
-            });
+            }
 
             return { matches, month };
         }
@@ -498,7 +512,7 @@
                     const gapDays = rowDay - prevDay - 1;
                     const label = gapDays === 1 ? '1 Tag frei' : `${gapDays} Tage frei`;
                     const fillerRow = `<tr class="${prevIsPast ? 'past-day filler-row' : 'filler-row'}">
-                        <td></td><td colspan="4">${label}</td>
+                        <td></td><td colspan="6">${label}</td>
                     </tr>`;
                     if (prevIsPast) pastRows += fillerRow;
                     else futureRows += fillerRow;
@@ -520,6 +534,8 @@
                     <td>${escapeHtml(result.field2)}</td>
                     <td>${escapeHtml(result.field5)}</td>
                     <td>${escapeHtml(result.field6)}</td>
+                    <td>${escapeHtml(result.arbeitszeit || '')}</td>
+                    <td>${escapeHtml(result.pause || '-')}</td>
                     <td>${escapeHtml(result.kommentar || '')}</td>
                 </tr>`;
 
@@ -538,11 +554,11 @@
             }
 
             const separator = pastRows
-                ? `<tr class="past-separator" onclick="togglePastDays()" style="cursor:pointer;"><td colspan="5"><span class="past-separator-inner"><span class="past-separator-label">vergangene Tage ausgeblendet</span><span class="toggle-past-link">▼</span></span></td></tr>`
+                ? `<tr class="past-separator" onclick="togglePastDays()" style="cursor:pointer;"><td colspan="7"><span class="past-separator-inner"><span class="past-separator-label">vergangene Tage ausgeblendet</span><span class="toggle-past-link">▼</span></span></td></tr>`
                 : '';
 
             html += '<table>';
-            html += '<thead><tr><th>Datum</th><th>Tag</th><th>Start</th><th>Ende</th><th>Kommentar</th></tr></thead>';
+            html += '<thead><tr><th>Tag</th><th></th><th>Start</th><th>Ende</th><th>Dauer</th><th>Pause</th><th>Info</th></tr></thead>';
             html += '<tbody>';
             html += separator + pastRows + futureRows;
             html += '</tbody></table>';
@@ -550,7 +566,7 @@
             // Build plain text for clipboard
             let plainText = '';
             results.forEach(result => {
-                const line = `${result.field1} ${result.field2} ${result.field5} ${result.field6}`;
+                const line = `${result.field1} ${result.field2} ${result.field5} ${result.field6} ${result.arbeitszeit || ''} ${result.pause || ''}`;
                 plainText += result.kommentar ? `${line} ${result.kommentar}\n` : `${line}\n`;
             });
 

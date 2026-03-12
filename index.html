@@ -754,9 +754,12 @@
 
         function addAlarmOffset() {
             const list = document.getElementById('alarm-offsets-list');
+            const inputs = list.querySelectorAll('.alarm-offset-input');
+            const lastVal = inputs.length > 0 ? parseInt(inputs[inputs.length - 1].value, 10) : 15;
+            const newVal = (isNaN(lastVal) ? 15 : lastVal) + 15;
             const div = document.createElement('div');
             div.className = 'alarm-offset-row';
-            div.innerHTML = `<input type="number" min="1" max="1440" value="30" class="alarm-offset-input" onchange="saveAlarmOffsetsFromUI()">
+            div.innerHTML = `<input type="number" min="1" max="1440" value="${newVal}" class="alarm-offset-input" onchange="saveAlarmOffsetsFromUI()">
                 <span style="font-size:0.82rem; color:#666;">min vorher</span>
                 <button class="alarm-offset-remove" onclick="removeAlarmOffset(this)" title="Entfernen">×</button>`;
             list.appendChild(div);

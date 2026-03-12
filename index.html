@@ -299,43 +299,6 @@
             color: #495057;
         }
 
-        .alarm-btn {
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 0.85rem;
-            padding: 0 0 0 0.3rem;
-            opacity: 0.3;
-            vertical-align: middle;
-            line-height: 1;
-        }
-
-        .alarm-btn:hover, .alarm-btn.alarm-set {
-            opacity: 1;
-        }
-
-        #alarm-toast {
-            position: fixed;
-            bottom: max(1.5rem, env(safe-area-inset-bottom));
-            left: 50%;
-            transform: translateX(-50%) translateY(4rem);
-            background: #333;
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            white-space: nowrap;
-            opacity: 0;
-            transition: opacity 0.25s, transform 0.25s;
-            pointer-events: none;
-            z-index: 999;
-        }
-
-        #alarm-toast.show {
-            opacity: 1;
-            transform: translateX(-50%) translateY(0);
-        }
-
     </style>
 </head>
 <body>
@@ -366,7 +329,6 @@
 
         // Load saved results on page load
         window.addEventListener('DOMContentLoaded', () => {
-            loadSavedAlarms();
             loadSavedResults();
         });
 
@@ -586,23 +548,10 @@
                     }
                 }
 
-                let alarmBtn = '';
-                if (!isPast && result.field5 && rowDay) {
-                    const timeMatch = result.field5.match(/(\d{1,2}):(\d{2})/);
-                    if (timeMatch) {
-                        const shiftTs = new Date(pdfYear, pdfMonthNum - 1, rowDay,
-                            parseInt(timeMatch[1], 10), parseInt(timeMatch[2], 10), 0, 0).getTime();
-                        if (shiftTs > Date.now()) {
-                            const isSet = !!getAlarms().find(a => a.shiftTime === shiftTs);
-                            alarmBtn = `<button class="alarm-btn${isSet ? ' alarm-set' : ''}" data-shift-ts="${shiftTs}" data-label="Schicht ${escapeHtml(result.field5)}" onclick="handleAlarmBtn(this)" title="${isSet ? 'Alarm abbrechen' : 'Alarm setzen'}">🔔</button>`;
-                        }
-                    }
-                }
-
                 const row = `<tr class="${isPast ? 'past-day' : ''}">
                     <td>${escapeHtml(result.field1)}</td>
                     <td>${escapeHtml(result.field2)}</td>
-                    <td>${escapeHtml(result.field5)}${alarmBtn}</td>
+                    <td>${escapeHtml(result.field5)}</td>
                     <td>${escapeHtml(result.field6)}</td>
                     <td data-col="dauer" data-raw="${escapeHtml(result.arbeitszeit || '')}">${escapeHtml(decimalDauerOn ? (result.arbeitszeit || '') : decimalToHm(result.arbeitszeit))}</td>
                     <td data-col="pause" data-raw="${escapeHtml(result.pause || '')}">${escapeHtml(decimalPauseOn ? (result.pause || '-') : (result.pause ? decimalToHm(result.pause) : '-'))}</td>
@@ -824,113 +773,6 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
-        }
-
-        // ── Alarm management ──────────────────────────────────────────────────
-
-        const ALARM_LEAD_MINUTES = 15;
-        const alarmTimers = {};
-
-        function getAlarms() {
-            try { return JSON.parse(localStorage.getItem('alarms') || '[]'); } catch { return []; }
-        }
-
-        function saveAlarms(alarms) {
-            localStorage.setItem('alarms', JSON.stringify(alarms));
-        }
-
-        function scheduleAlarmTimer(id, alarmTime, label) {
-            const delay = alarmTime - Date.now();
-            if (delay <= 0) return;
-            if (alarmTimers[id]) clearTimeout(alarmTimers[id]);
-            alarmTimers[id] = setTimeout(() => {
-                fireAlarm(label);
-                saveAlarms(getAlarms().filter(a => a.id !== id));
-                delete alarmTimers[id];
-                // Refresh bell state for all rendered buttons
-                const stored = getAlarms();
-                document.querySelectorAll('.alarm-btn[data-shift-ts]').forEach(btn => {
-                    const isSet = !!stored.find(a => a.shiftTime === parseInt(btn.dataset.shiftTs));
-                    btn.classList.toggle('alarm-set', isSet);
-                    btn.title = isSet ? 'Alarm abbrechen' : 'Alarm setzen';
-                });
-            }, delay);
-        }
-
-        function fireAlarm(label) {
-            if ('Notification' in window && Notification.permission === 'granted') {
-                new Notification('Arbeitsplan', { body: label, icon: './icon-192.png' });
-            }
-            try {
-                const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                [0, 0.5, 1.0].forEach(offset => {
-                    const osc = ctx.createOscillator();
-                    const gain = ctx.createGain();
-                    osc.connect(gain);
-                    gain.connect(ctx.destination);
-                    osc.frequency.value = 880;
-                    gain.gain.setValueAtTime(0.4, ctx.currentTime + offset);
-                    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + offset + 0.4);
-                    osc.start(ctx.currentTime + offset);
-                    osc.stop(ctx.currentTime + offset + 0.45);
-                });
-            } catch (e) {
-                alert(`⏰ ${label}`);
-            }
-        }
-
-        async function handleAlarmBtn(btn) {
-            const shiftTs = parseInt(btn.dataset.shiftTs);
-            const label = btn.dataset.label;
-            const alarms = getAlarms();
-            const existing = alarms.find(a => a.shiftTime === shiftTs);
-
-            if (existing) {
-                if (alarmTimers[existing.id]) { clearTimeout(alarmTimers[existing.id]); delete alarmTimers[existing.id]; }
-                saveAlarms(alarms.filter(a => a.shiftTime !== shiftTs));
-                btn.classList.remove('alarm-set');
-                btn.title = 'Alarm setzen';
-                showToast('Alarm abgebrochen');
-                return;
-            }
-
-            if ('Notification' in window && Notification.permission === 'default') {
-                const perm = await Notification.requestPermission();
-                if (perm === 'denied') {
-                    showToast('Benachrichtigungen blockiert – App offen lassen für Ton');
-                }
-            }
-
-            const alarmTime = Math.max(shiftTs - ALARM_LEAD_MINUTES * 60000, Date.now() + 5000);
-            const id = `alarm-${shiftTs}`;
-            saveAlarms([...alarms, { id, shiftTime: shiftTs, alarmTime, label }]);
-            scheduleAlarmTimer(id, alarmTime, label);
-            btn.classList.add('alarm-set');
-            btn.title = 'Alarm abbrechen';
-            const d = new Date(alarmTime);
-            const hh = String(d.getHours()).padStart(2, '0');
-            const mm = String(d.getMinutes()).padStart(2, '0');
-            showToast(`Alarm gesetzt für ${hh}:${mm} – App offen lassen`);
-        }
-
-        function showToast(msg) {
-            let toast = document.getElementById('alarm-toast');
-            if (!toast) {
-                toast = document.createElement('div');
-                toast.id = 'alarm-toast';
-                document.body.appendChild(toast);
-            }
-            toast.textContent = msg;
-            toast.classList.add('show');
-            clearTimeout(toast._hideTimer);
-            toast._hideTimer = setTimeout(() => toast.classList.remove('show'), 3500);
-        }
-
-        function loadSavedAlarms() {
-            const now = Date.now();
-            const alarms = getAlarms().filter(a => a.alarmTime > now);
-            saveAlarms(alarms);
-            alarms.forEach(a => scheduleAlarmTimer(a.id, a.alarmTime, a.label));
         }
 
         // Register service worker for PWA / offline support

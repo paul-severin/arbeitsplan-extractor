@@ -26,6 +26,19 @@ self.addEventListener('activate', event => {
   );
 });
 
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'CLEAR_CACHE') {
+    event.waitUntil(
+      caches.keys().then(keys =>
+        Promise.all(keys.map(k => caches.delete(k)))
+      ).then(() => {
+        // Re-install the cache with fresh resources
+        return caches.open(CACHE).then(cache => cache.addAll(PRECACHE));
+      })
+    );
+  }
+});
+
 self.addEventListener('fetch', event => {
   // Only handle GET requests
   if (event.request.method !== 'GET') return;

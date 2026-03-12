@@ -673,7 +673,7 @@
             const alarmTime = new Date(shiftTs - 30 * 60 * 1000);
             const hh = String(alarmTime.getHours()).padStart(2, '0');
             const mm = String(alarmTime.getMinutes()).padStart(2, '0');
-            window.location.href = `shortcuts://run-shortcut?name=PWA%20Alarm&input=${encodeURIComponent(hh + ':' + mm)}`;
+            window.location.href = `shortcuts://run-shortcut?name=PWA%20Alarm&input=text&text=${encodeURIComponent(hh + ':' + mm)}`;
         }
 
         function formatCountdown(ms) {

@@ -686,6 +686,30 @@
 
             html += `<div id="plainText" style="display:none">${escapeHtml(plainText)}</div>`;
             html += '<div style="text-align:center; margin-top:0.75rem;"><button class="copy-btn" onclick="copyToClipboard()"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Als Text kopieren</button></div>';
+
+            // Alarm offsets section
+            html += '<h3 style="margin-top:1rem;">Alarm-Zeiten</h3>';
+            const currentStep = getAlarmOffsetStep();
+            html += `<div style="font-size:0.82rem; color:#666; display:flex; align-items:center; gap:0.5rem; margin-bottom:0.5rem;">
+                <span>Schrittweite:</span>
+                <select class="alarm-offset-input" onchange="saveAlarmOffsetStep(this.value)">
+                    ${[1,5,10,15,30].map(s => `<option value="${s}"${s === currentStep ? ' selected' : ''}>${s} min</option>`).join('')}
+                </select>
+            </div>`;
+            html += '<div style="width:200px">';
+            html += '<div id="alarm-offsets-list">';
+            const alarmOffsets = getAlarmOffsets();
+            alarmOffsets.forEach(offset => {
+                html += `<div class="alarm-offset-row">
+                    <select class="alarm-offset-input" onchange="saveAlarmOffsetsFromUI()">${buildOffsetOptions(offset)}</select>
+                    <span class="alarm-offset-label">min vorher</span>
+                    <button class="alarm-offset-remove" onclick="removeAlarmOffset(this)" title="Entfernen">×</button>
+                </div>`;
+            });
+            html += '</div>';
+            html += '<button class="alarm-offset-add" onclick="addAlarmOffset()">+ Hinzufügen</button>';
+            html += '</div>';
+
             html += '<h3 style="margin-top:1rem;">Einstellungen</h3>';
             html += '<div style="margin-top:0.4rem; font-size:0.85rem; color:#666; display:flex; align-items:center; gap:0.75rem;">';
             const fillerOn = localStorage.getItem('showFillerRows') !== 'false';
@@ -712,30 +736,6 @@
             html += `<span class="${decimalPauseOn ? 'active' : ''}">An</span><span class="${decimalPauseOn ? '' : 'active'}">Aus</span>`;
             html += '</div>';
             html += '<span>Pause als Dezimalzahl anzeigen</span>';
-            html += '</div>';
-
-            // Alarm offsets section
-            html += '<div style="margin-top:1rem; font-size:0.85rem; font-weight:600; color:#333;">Alarm-Zeiten</div>';
-            html += '<div style="margin-bottom:0.4rem;"></div>';
-            const currentStep = getAlarmOffsetStep();
-            html += `<div style="font-size:0.82rem; color:#666; display:flex; align-items:center; gap:0.5rem; margin-bottom:0.5rem;">
-                <span>Schrittweite:</span>
-                <select class="alarm-offset-input" onchange="saveAlarmOffsetStep(this.value)">
-                    ${[1,5,10,15,30].map(s => `<option value="${s}"${s === currentStep ? ' selected' : ''}>${s} min</option>`).join('')}
-                </select>
-            </div>`;
-            html += '<div style="width:200px">';
-            html += '<div id="alarm-offsets-list">';
-            const alarmOffsets = getAlarmOffsets();
-            alarmOffsets.forEach(offset => {
-                html += `<div class="alarm-offset-row">
-                    <select class="alarm-offset-input" onchange="saveAlarmOffsetsFromUI()">${buildOffsetOptions(offset)}</select>
-                    <span class="alarm-offset-label">min vorher</span>
-                    <button class="alarm-offset-remove" onclick="removeAlarmOffset(this)" title="Entfernen">×</button>
-                </div>`;
-            });
-            html += '</div>';
-            html += '<button class="alarm-offset-add" onclick="addAlarmOffset()">+ Hinzufügen</button>';
             html += '</div>';
 
             outputDiv.innerHTML = html;

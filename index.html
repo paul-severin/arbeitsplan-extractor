@@ -297,6 +297,24 @@
             margin-bottom: 0.5rem;
             font-size: 0.85rem;
             color: #495057;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .alarm-shortcut-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0.15rem;
+            color: #6c757d;
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .alarm-shortcut-btn:hover {
+            color: #343a40;
         }
 
     </style>
@@ -569,7 +587,12 @@
 
             const bannerOn = localStorage.getItem('showNextShift') !== 'false';
             if (nextShiftStart) {
-                html += `<div class="next-shift-banner" id="next-shift-banner" style="${bannerOn ? '' : 'display:none'}"></div>`;
+                html += `<div class="next-shift-banner" id="next-shift-banner" style="${bannerOn ? '' : 'display:none'}">
+                    <span id="next-shift-text"></span>
+                    <button class="alarm-shortcut-btn" data-shift-ts="${nextShiftStart.getTime()}" onclick="setShiftAlarm(this)" title="Alarm 30 min vorher setzen">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M5 3 2 6"/><path d="m22 6-3-3"/></svg>
+                    </button>
+                </div>`;
             }
 
             const separator = pastRows
@@ -639,8 +662,18 @@
         function updateCountdownPill(shiftStart) {
             const banner = document.getElementById('next-shift-banner');
             if (!banner) { clearInterval(countdownInterval); return; }
+            const textEl = document.getElementById('next-shift-text');
+            if (!textEl) return;
             const ms = shiftStart - Date.now();
-            banner.textContent = ms <= 0 ? 'Nächste Schicht: jetzt' : `Nächste Schicht ${formatCountdown(ms)}`;
+            textEl.textContent = ms <= 0 ? 'Nächste Schicht: jetzt' : `Nächste Schicht ${formatCountdown(ms)}`;
+        }
+
+        function setShiftAlarm(btn) {
+            const shiftTs = parseInt(btn.dataset.shiftTs);
+            const alarmTime = new Date(shiftTs - 30 * 60 * 1000);
+            const hh = String(alarmTime.getHours()).padStart(2, '0');
+            const mm = String(alarmTime.getMinutes()).padStart(2, '0');
+            window.location.href = `shortcuts://run-shortcut?name=PWA%20Alarm&input=${encodeURIComponent(hh + ':' + mm)}`;
         }
 
         function formatCountdown(ms) {

@@ -86,6 +86,7 @@
 
         th:first-child, td:first-child {
             text-align: right;
+            padding-left: 0.4rem;
         }
 
         th:not(:last-child), td:not(:last-child) {
@@ -488,6 +489,9 @@
                 if (idx !== -1) pdfMonthNum = idx + 1;
             }
 
+            const decimalDauerOn = localStorage.getItem('formatDauer') === 'true';
+            const decimalPauseOn = localStorage.getItem('formatPause') === 'true';
+
             let pastRows = '';
             let futureRows = '';
             let nextShiftStart = null;
@@ -534,8 +538,8 @@
                     <td>${escapeHtml(result.field2)}</td>
                     <td>${escapeHtml(result.field5)}</td>
                     <td>${escapeHtml(result.field6)}</td>
-                    <td>${escapeHtml(result.arbeitszeit || '')}</td>
-                    <td>${escapeHtml(result.pause || '-')}</td>
+                    <td data-col="dauer" data-raw="${escapeHtml(result.arbeitszeit || '')}">${escapeHtml(decimalDauerOn ? (result.arbeitszeit || '') : decimalToHm(result.arbeitszeit))}</td>
+                    <td data-col="pause" data-raw="${escapeHtml(result.pause || '')}">${escapeHtml(decimalPauseOn ? (result.pause || '-') : (result.pause ? decimalToHm(result.pause) : '-'))}</td>
                     <td>${escapeHtml(result.kommentar || '')}</td>
                 </tr>`;
 
@@ -586,6 +590,18 @@
             html += `<span class="${bannerOnSetting ? 'active' : ''}">An</span><span class="${bannerOnSetting ? '' : 'active'}">Aus</span>`;
             html += '</div>';
             html += '<span>„Nächste Schicht in" anzeigen</span>';
+            html += '</div>';
+            html += '<div style="margin-top:0.4rem; font-size:0.85rem; color:#666; display:flex; align-items:center; gap:0.75rem;">';
+            html += '<div class="toggle-pill" onclick="toggleDauerFormat(this)">';
+            html += `<span class="${decimalDauerOn ? 'active' : ''}">An</span><span class="${decimalDauerOn ? '' : 'active'}">Aus</span>`;
+            html += '</div>';
+            html += '<span>Dauer als Dezimalzahl anzeigen</span>';
+            html += '</div>';
+            html += '<div style="margin-top:0.4rem; font-size:0.85rem; color:#666; display:flex; align-items:center; gap:0.75rem;">';
+            html += '<div class="toggle-pill" onclick="togglePauseFormat(this)">';
+            html += `<span class="${decimalPauseOn ? 'active' : ''}">An</span><span class="${decimalPauseOn ? '' : 'active'}">Aus</span>`;
+            html += '</div>';
+            html += '<span>Pause als Dezimalzahl anzeigen</span>';
             html += '</div>';
 
             outputDiv.innerHTML = html;
@@ -640,6 +656,40 @@
             }).catch(err => {
                 console.error('Fehler beim Kopieren:', err);
                 alert('Fehler beim Kopieren in die Zwischenablage');
+            });
+        }
+
+        function decimalToHm(val) {
+            if (!val || val === '-') return val || '-';
+            const num = parseFloat(val.replace(',', '.'));
+            if (isNaN(num)) return val;
+            const h = Math.floor(num);
+            const m = Math.round((num - h) * 60);
+            if (h > 0 && m > 0) return `${h}h${m}m`;
+            if (h > 0) return `${h}h`;
+            if (m > 0) return `${m}m`;
+            return val;
+        }
+
+        function toggleDauerFormat(pill) {
+            const [on, off] = pill.querySelectorAll('span');
+            const isOn = on.classList.contains('active');
+            on.classList.toggle('active', !isOn);
+            off.classList.toggle('active', isOn);
+            localStorage.setItem('formatDauer', isOn ? 'false' : 'true');
+            document.querySelectorAll('td[data-col="dauer"]').forEach(td => {
+                td.textContent = !isOn ? (td.dataset.raw || '') : decimalToHm(td.dataset.raw);
+            });
+        }
+
+        function togglePauseFormat(pill) {
+            const [on, off] = pill.querySelectorAll('span');
+            const isOn = on.classList.contains('active');
+            on.classList.toggle('active', !isOn);
+            off.classList.toggle('active', isOn);
+            localStorage.setItem('formatPause', isOn ? 'false' : 'true');
+            document.querySelectorAll('td[data-col="pause"]').forEach(td => {
+                td.textContent = !isOn ? (td.dataset.raw || '-') : (td.dataset.raw ? decimalToHm(td.dataset.raw) : '-');
             });
         }
 

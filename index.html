@@ -347,45 +347,40 @@
             background: var(--surface);
         }
 
-        .alarm-offset-row {
+        #alarm-offsets-list {
             display: flex;
-            align-items: stretch;
+            flex-direction: column;
+            gap: 0.4rem;
+            margin-bottom: 0.4rem;
+        }
+
+        .alarm-offset-item {
+            display: inline-flex;
             border: 1px solid var(--border);
             border-radius: 8px;
             overflow: hidden;
-            margin-bottom: 0.4rem;
-            background: var(--surface);
+            align-self: flex-start;
         }
 
-        .alarm-offset-row .alarm-offset-input {
+        .alarm-offset-item select {
             border: none;
-            border-right: 1px solid var(--border);
-            border-radius: 0;
-        }
-
-        .alarm-offset-label {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            padding: 0 0.75rem;
-            font-size: 0.82rem;
-            color: var(--text-muted);
+            padding: 0.25rem 0.1rem 0.25rem 0.4rem;
+            font-size: 0.85rem;
+            color: var(--text);
+            background: var(--surface);
             border-right: 1px solid var(--border);
         }
 
-        .alarm-offset-remove {
+        .alarm-offset-item button {
             background: none;
             border: none;
-            border-radius: 0;
             cursor: pointer;
-            padding: 0.15rem 0.65rem;
+            padding: 0.15rem 0.4rem;
             color: var(--text-muted);
             font-size: 0.9rem;
-            line-height: 1;
-            flex-shrink: 0;
         }
 
-        .alarm-offset-remove:hover {
+        .alarm-offset-item button:hover {
             background: #fee;
             color: #c33;
         }
@@ -731,19 +726,16 @@
                     ${[1,5,10,15,30].map(s => `<option value="${s}"${s === currentStep ? ' selected' : ''}>${s} min</option>`).join('')}
                 </select>
             </div>`;
-            html += '<div style="width:200px">';
             html += '<div id="alarm-offsets-list">';
             const alarmOffsets = getAlarmOffsets();
             alarmOffsets.forEach(offset => {
-                html += `<div class="alarm-offset-row">
-                    <select class="alarm-offset-input" onchange="saveAlarmOffsetsFromUI()">${buildOffsetOptions(offset)}</select>
-                    <span class="alarm-offset-label">min vorher</span>
-                    <button class="alarm-offset-remove" onclick="removeAlarmOffset(this)" title="Entfernen">×</button>
+                html += `<div class="alarm-offset-item">
+                    <select onchange="saveAlarmOffsetsFromUI()">${buildOffsetOptions(offset)}</select>
+                    <button onclick="removeAlarmOffset(this)" title="Entfernen">×</button>
                 </div>`;
             });
             html += '</div>';
             html += '<button class="alarm-offset-add" onclick="addAlarmOffset()">+ Hinzufügen</button>';
-            html += '</div>';
 
             html += '<h3 style="margin-top:1rem;">Einstellungen</h3>';
             const fillerOn = localStorage.getItem('showFillerRows') !== 'false';
@@ -831,7 +823,7 @@
             localStorage.setItem('alarmOffsetStep', val);
             // Rebuild all offset selects with new step, snapping values to nearest multiple
             const step = parseInt(val, 10);
-            document.querySelectorAll('#alarm-offsets-list .alarm-offset-input').forEach(sel => {
+            document.querySelectorAll('#alarm-offsets-list select').forEach(sel => {
                 const cur = parseInt(sel.value, 10);
                 const snapped = Math.min(300, Math.round(cur / step) * step);
                 sel.innerHTML = buildOffsetOptions(snapped);
@@ -851,30 +843,29 @@
         }
 
         function saveAlarmOffsetsFromUI() {
-            const inputs = document.querySelectorAll('#alarm-offsets-list .alarm-offset-input');
-            const offsets = Array.from(inputs)
-                .map(i => parseInt(i.value, 10))
+            const selects = document.querySelectorAll('#alarm-offsets-list select');
+            const offsets = Array.from(selects)
+                .map(s => parseInt(s.value, 10))
                 .filter(v => !isNaN(v) && v >= 0);
             localStorage.setItem('alarmOffsets', JSON.stringify(offsets));
         }
 
         function addAlarmOffset() {
             const list = document.getElementById('alarm-offsets-list');
-            const inputs = list.querySelectorAll('.alarm-offset-input');
-            const lastVal = inputs.length > 0 ? parseInt(inputs[inputs.length - 1].value, 10) : 15;
+            const selects = list.querySelectorAll('select');
+            const lastVal = selects.length > 0 ? parseInt(selects[selects.length - 1].value, 10) : 15;
             const rawNew = (isNaN(lastVal) ? 15 : lastVal) + 15;
             const newVal = Math.min(300, Math.round(rawNew / 5) * 5);
             const div = document.createElement('div');
-            div.className = 'alarm-offset-row';
-            div.innerHTML = `<select class="alarm-offset-input" onchange="saveAlarmOffsetsFromUI()">${buildOffsetOptions(newVal)}</select>
-                <span class="alarm-offset-label">min vorher</span>
-                <button class="alarm-offset-remove" onclick="removeAlarmOffset(this)" title="Entfernen">×</button>`;
+            div.className = 'alarm-offset-item';
+            div.innerHTML = `<select onchange="saveAlarmOffsetsFromUI()">${buildOffsetOptions(newVal)}</select>
+                <button onclick="removeAlarmOffset(this)" title="Entfernen">×</button>`;
             list.appendChild(div);
             saveAlarmOffsetsFromUI();
         }
 
         function removeAlarmOffset(btn) {
-            btn.closest('.alarm-offset-row').remove();
+            btn.closest('.alarm-offset-item').remove();
             saveAlarmOffsetsFromUI();
         }
 

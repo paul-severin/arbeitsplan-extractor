@@ -39,6 +39,10 @@
             --banner-color: #495057;
             --pill-active-bg: #495057;
             --pill-active-color: #fff;
+            --table-font-size: 1rem;
+            --heading-font-size: 1.2rem;
+            --cell-padding-v: 0.35rem;
+            --body-padding: 7px;
         }
 
         [data-theme="dark"] {
@@ -69,10 +73,10 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            padding: 7px;
-            padding-left: max(7px, env(safe-area-inset-left));
-            padding-right: max(7px, env(safe-area-inset-right));
-            padding-bottom: max(7px, env(safe-area-inset-bottom));
+            padding: var(--body-padding);
+            padding-left: max(var(--body-padding), env(safe-area-inset-left));
+            padding-right: max(var(--body-padding), env(safe-area-inset-right));
+            padding-bottom: max(var(--body-padding), env(safe-area-inset-bottom));
             margin: 0 auto;
             background: var(--bg);
             color: var(--text);
@@ -118,15 +122,25 @@
         }
 
         #results {
-            background: var(--surface);
-            border-radius: 4px;
-            padding: 0;
             display: none;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        #results.visible {
+            display: flex;
+        }
+
+        #output {
+            overflow: hidden;
+        }
+
+        #tableWrap {
             overflow: hidden;
         }
 
         h2, h3 {
-            font-size: 1.2rem;
+            font-size: var(--heading-font-size);
             margin: 0.5rem 0;
             font-weight: 600;
         }
@@ -136,12 +150,12 @@
             border-collapse: separate;
             border-spacing: 0;
             margin-top: 0;
-            font-size: 1rem;
+            font-size: var(--table-font-size);
             table-layout: fixed;
         }
 
         th, td {
-            padding: 0.4rem 0;
+            padding: var(--cell-padding-v) 0;
             text-align: left;
             border-bottom: 1px solid var(--border-light);
         }
@@ -169,10 +183,20 @@
             font-size: 0.9rem;
         }
 
+        thead tr th:first-child {
+            border-top-left-radius: 6px;
+            border-bottom-left-radius: 6px;
+        }
+
+        thead tr th:last-child {
+            border-top-right-radius: 6px;
+            border-bottom-right-radius: 6px;
+        }
+
         tbody::before {
             content: '';
             display: block;
-            height: 0.3rem;
+            height: 0.15rem;
         }
 
         tr:hover {
@@ -274,8 +298,8 @@
 
         tr.past-day.show td {
             max-height: 3rem;
-            padding-top: 0.4rem;
-            padding-bottom: 0.4rem;
+            padding-top: var(--cell-padding-v);
+            padding-bottom: var(--cell-padding-v);
             line-height: 1.4;
             opacity: 1;
             background: var(--past-bg);
@@ -376,9 +400,12 @@
         }
 
         #alarm-offsets-list {
-            display: inline-flex;
-            flex-direction: column;
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            align-items: center;
             gap: 0.4rem;
+            margin-top: 0.4rem;
             margin-bottom: 0.4rem;
         }
 
@@ -418,12 +445,10 @@
             border: 1px solid var(--border);
             border-radius: 8px;
             cursor: pointer;
-            padding: 0.25rem;
+            padding: 0.25rem 0.5rem;
             color: var(--text-heading);
             font-size: 1rem;
             line-height: 1;
-            display: flex;
-            justify-content: center;
         }
 
         .alarm-offset-add:hover {
@@ -480,7 +505,7 @@
         }
 
         .settings-accordion-content.open {
-            max-height: 400px;
+            max-height: 600px;
             opacity: 1;
         }
 
@@ -502,6 +527,17 @@
             text-transform: uppercase;
             letter-spacing: 0.04em;
             padding: 0.6rem 0 0.2rem;
+            margin-top: 0.4rem;
+        }
+
+        .settings-section-title:first-child {
+            margin-top: 0;
+        }
+
+        .settings-slider {
+            width: 80px;
+            accent-color: var(--pill-active-bg);
+            flex-shrink: 0;
         }
 
     </style>
@@ -518,6 +554,7 @@
 
     <div id="results">
         <div id="output"></div>
+        <div id="tableWrap"></div>
     </div>
     <div id="accordions"></div>
 
@@ -531,11 +568,13 @@
         const loading = document.getElementById('loading');
         const resultsDiv = document.getElementById('results');
         const outputDiv = document.getElementById('output');
+        const tableWrapDiv = document.getElementById('tableWrap');
         const accordionsDiv = document.getElementById('accordions');
         const errorDiv = document.getElementById('error');
 
         // Load saved results on page load
         window.addEventListener('DOMContentLoaded', () => {
+            applyFontSettings();
             loadSavedResults();
         });
 
@@ -549,7 +588,8 @@
 
         async function handleFile(file) {
             errorDiv.innerHTML = '';
-            resultsDiv.style.display = 'none';
+            resultsDiv.classList.remove('visible');
+            tableWrapDiv.innerHTML = '';
             accordionsDiv.innerHTML = '';
             loading.style.display = 'block';
 
@@ -667,7 +707,7 @@
         }
 
         function displayResults(data) {
-            resultsDiv.style.display = 'block';
+            resultsDiv.classList.add('visible');
             uploadArea.style.display = 'none';
 
             const results = data.matches || data.results || data;
@@ -793,13 +833,15 @@
                 ? `<tr class="past-separator" onclick="togglePastDays()" style="cursor:pointer;"><td colspan="7"><span class="past-separator-inner"><span class="past-separator-label">vergangene Tage ausgeblendet</span><span class="toggle-past-link">▼</span></span></td></tr>`
                 : '';
 
-            html += '<table>';
-            html += '<colgroup><col style="width:9%"><col style="width:8%"><col style="width:14%"><col style="width:14%"><col style="width:15%"><col style="width:15%"><col style="width:25%"></colgroup>';
-            html += '<thead><tr><th>Tag</th><th></th><th>Start</th><th>Ende</th><th>Dauer</th><th>Pause</th><th>Info</th></tr></thead>';
-            html += '<tbody>';
-            html += separator + pastRows + futureRows;
-            html += '</tbody></table>';
             outputDiv.innerHTML = html;
+
+            let tableHtml = '<table>';
+            tableHtml += '<colgroup><col style="width:9%"><col style="width:8%"><col style="width:14%"><col style="width:14%"><col style="width:15%"><col style="width:15%"><col style="width:25%"></colgroup>';
+            tableHtml += '<thead><tr><th>Tag</th><th></th><th>Start</th><th>Ende</th><th>Dauer</th><th>Pause</th><th>Info</th></tr></thead>';
+            tableHtml += '<tbody>';
+            tableHtml += separator + pastRows + futureRows;
+            tableHtml += '</tbody></table>';
+            tableWrapDiv.innerHTML = tableHtml;
             let accordionsHtml = '';
 
             // Combined settings accordion
@@ -831,8 +873,8 @@
                 <span>Schrittweite</span>
             </div>`;
 
-            // Einstellungen subheading
-            accordionsHtml += '<div class="settings-section-title">Anzeige</div>';
+            // Features subheading
+            accordionsHtml += '<div class="settings-section-title">Features</div>';
 
             const fillerOn = localStorage.getItem('showFillerRows') !== 'false';
             accordionsHtml += '<div class="settings-row">';
@@ -850,6 +892,9 @@
             accordionsHtml += '<span>„Nächste Schicht in" anzeigen</span>';
             accordionsHtml += '</div>';
 
+            // Stunden/Minuten-Anzeige subheading
+            accordionsHtml += '<div class="settings-section-title">Stunden/Minuten-Anzeige</div>';
+
             accordionsHtml += '<div class="settings-row">';
             accordionsHtml += '<div class="toggle-pill" onclick="toggleDauerFormat(this)">';
             accordionsHtml += `<span class="${decimalDauerOn ? 'active' : ''}">An</span><span class="${decimalDauerOn ? '' : 'active'}">Aus</span>`;
@@ -864,6 +909,9 @@
             accordionsHtml += '<span>Pause als Dezimalzahl</span>';
             accordionsHtml += '</div>';
 
+            // Anzeige subheading
+            accordionsHtml += '<div class="settings-section-title">Anzeige</div>';
+
             const darkOn = localStorage.getItem('colorTheme') !== 'light';
             accordionsHtml += '<div class="settings-row">';
             accordionsHtml += '<div class="toggle-pill" onclick="toggleDarkMode(this)">';
@@ -871,6 +919,14 @@
             accordionsHtml += '</div>';
             accordionsHtml += '<span>Dunkles Design</span>';
             accordionsHtml += '</div>';
+
+            const tFontIdx = parseInt(localStorage.getItem('tableFontIdx') || '2');
+            const hFontIdx = parseInt(localStorage.getItem('headingFontIdx') || '1');
+            const bodyPadIdx = parseInt(localStorage.getItem('bodyPaddingIdx') || '1');
+
+            accordionsHtml += `<div class="settings-row"><input type="range" class="settings-slider" min="0" max="3" step="1" value="${tFontIdx}" oninput="saveTableFont(this.value)"><span>Schriftgröße Tabelle</span></div>`;
+            accordionsHtml += `<div class="settings-row"><input type="range" class="settings-slider" min="0" max="3" step="1" value="${hFontIdx}" oninput="saveHeadingFont(this.value)"><span>Schriftgröße Überschriften</span></div>`;
+            accordionsHtml += `<div class="settings-row"><input type="range" class="settings-slider" min="0" max="3" step="1" value="${bodyPadIdx}" oninput="saveBodyPadding(this.value)"><span>Außenabstand</span></div>`;
 
             accordionsHtml += '</div>'; // close settings-accordion
 
@@ -1134,6 +1190,34 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        const TABLE_FONT_SIZES   = ['0.8rem', '0.9rem', '1rem', '1.1rem'];
+        const HEADING_FONT_SIZES = ['1rem', '1.2rem', '1.4rem', '1.6rem'];
+        const BODY_PADDINGS      = ['3px', '7px', '12px', '18px'];
+
+        function applyFontSettings() {
+            const tIdx = parseInt(localStorage.getItem('tableFontIdx') || '2');
+            const hIdx = parseInt(localStorage.getItem('headingFontIdx') || '1');
+            const pIdx = parseInt(localStorage.getItem('bodyPaddingIdx') || '1');
+            document.documentElement.style.setProperty('--table-font-size', TABLE_FONT_SIZES[tIdx]);
+            document.documentElement.style.setProperty('--heading-font-size', HEADING_FONT_SIZES[hIdx]);
+            document.documentElement.style.setProperty('--body-padding', BODY_PADDINGS[pIdx]);
+        }
+
+        function saveTableFont(idx) {
+            localStorage.setItem('tableFontIdx', idx);
+            document.documentElement.style.setProperty('--table-font-size', TABLE_FONT_SIZES[idx]);
+        }
+
+        function saveHeadingFont(idx) {
+            localStorage.setItem('headingFontIdx', idx);
+            document.documentElement.style.setProperty('--heading-font-size', HEADING_FONT_SIZES[idx]);
+        }
+
+        function saveBodyPadding(idx) {
+            localStorage.setItem('bodyPaddingIdx', idx);
+            document.documentElement.style.setProperty('--body-padding', BODY_PADDINGS[idx]);
         }
 
         // Register service worker for PWA / offline support

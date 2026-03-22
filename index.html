@@ -69,10 +69,10 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            padding: 0;
-            padding-left: max(0px, env(safe-area-inset-left));
-            padding-right: max(0px, env(safe-area-inset-right));
-            padding-bottom: max(0px, env(safe-area-inset-bottom));
+            padding: 7px;
+            padding-left: max(7px, env(safe-area-inset-left));
+            padding-right: max(7px, env(safe-area-inset-right));
+            padding-bottom: max(7px, env(safe-area-inset-bottom));
             margin: 0 auto;
             background: var(--bg);
             color: var(--text);
@@ -126,7 +126,7 @@
         }
 
         h2, h3 {
-            font-size: 1rem;
+            font-size: 1.2rem;
             margin: 0.5rem 0;
             font-weight: 600;
         }
@@ -153,7 +153,7 @@
 
         th:not(:last-child), td:not(:last-child) {
             white-space: nowrap;
-            padding-right: 0.5rem;
+            padding-right: 1rem;
         }
 
         td:last-child {
@@ -250,6 +250,11 @@
             font-size: 0.8rem;
         }
 
+        .settings-accordion-header .past-separator-label {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
         .toggle-past-link {
             color: var(--text-muted);
             font-size: 0.85rem;
@@ -334,10 +339,10 @@
 
         .next-shift-banner {
             background: var(--banner-bg);
-            border-radius: 0;
-            padding: 0.4rem 0.5rem;
-            margin-bottom: 0;
-            font-size: 0.9rem;
+            border-radius: 8px;
+            padding: 0.4rem 0.75rem;
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
             color: var(--banner-color);
             display: flex;
             align-items: center;
@@ -440,46 +445,63 @@
             gap: 0.75rem;
         }
 
-        .collapsible-header {
+        #accordions {
+            background: var(--surface);
+            border-radius: 4px;
+            margin-top: 1rem;
+        }
+
+        .settings-accordion-header {
+            background: var(--past-sep-bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.35rem 0.4rem;
+            cursor: pointer;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0.5rem 0.5rem 0.3rem;
-            cursor: pointer;
-            border-top: 1px solid var(--border-light);
-            margin-top: 0.25rem;
             user-select: none;
         }
 
-        .collapsible-header h3 {
-            margin: 0;
+        .settings-accordion-header.open {
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+            border-bottom-color: transparent;
         }
 
-        .collapsible-arrow {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-        }
-
-        .collapsible-content {
+        .settings-accordion-content {
+            border: 1px solid var(--border);
+            border-top: none;
+            border-bottom-left-radius: 6px;
+            border-bottom-right-radius: 6px;
             overflow: hidden;
-            transition: max-height 0.25s ease, opacity 0.25s ease;
+            transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
             padding: 0 0.5rem;
         }
 
-        .collapsible-content.open {
-            max-height: 600px;
+        .settings-accordion-content.open {
+            max-height: 400px;
             opacity: 1;
         }
 
-        .collapsible-content.collapsed {
+        .settings-accordion-content.collapsed {
             max-height: 0;
             opacity: 0;
             padding-top: 0;
             padding-bottom: 0;
         }
 
-        .collapsible-content.open > *:last-child {
+        .settings-accordion-content.open > *:last-child {
             margin-bottom: 0.5rem;
+        }
+
+        .settings-section-title {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            padding: 0.6rem 0 0.2rem;
         }
 
     </style>
@@ -497,6 +519,7 @@
     <div id="results">
         <div id="output"></div>
     </div>
+    <div id="accordions"></div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script>
@@ -508,6 +531,7 @@
         const loading = document.getElementById('loading');
         const resultsDiv = document.getElementById('results');
         const outputDiv = document.getElementById('output');
+        const accordionsDiv = document.getElementById('accordions');
         const errorDiv = document.getElementById('error');
 
         // Load saved results on page load
@@ -526,6 +550,7 @@
         async function handleFile(file) {
             errorDiv.innerHTML = '';
             resultsDiv.style.display = 'none';
+            accordionsDiv.innerHTML = '';
             loading.style.display = 'block';
 
             try {
@@ -774,83 +799,82 @@
             html += '<tbody>';
             html += separator + pastRows + futureRows;
             html += '</tbody></table>';
+            outputDiv.innerHTML = html;
+            let accordionsHtml = '';
 
-            // Alarm offsets section (collapsible)
-            const alarmCollapsed = localStorage.getItem('alarmSectionCollapsed') === 'true';
-            html += `<div class="collapsible-header" onclick="toggleSection('alarm-section','alarmSectionCollapsed')">
-                <h3>Alarm-Zeiten</h3>
-                <span class="collapsible-arrow">${alarmCollapsed ? '▶' : '▼'}</span>
+            // Combined settings accordion
+            const settingsCollapsed = localStorage.getItem('settingsSectionCollapsed') === 'true';
+            accordionsHtml += `<div class="settings-accordion-header ${settingsCollapsed ? '' : 'open'}" onclick="toggleSettingsSection()">
+                <span class="past-separator-label">Einstellungen</span>
+                <span class="toggle-past-link">${settingsCollapsed ? '▼' : '▲'}</span>
             </div>`;
-            html += `<div id="alarm-section" class="collapsible-content ${alarmCollapsed ? 'collapsed' : 'open'}">`;
-            html += '<div id="alarm-offsets-list" style="margin-top:0.5rem;">';
+            accordionsHtml += `<div id="settings-accordion" class="settings-accordion-content ${settingsCollapsed ? 'collapsed' : 'open'}">`;
+
+            // Alarm-Zeiten subheading
+            accordionsHtml += '<div class="settings-section-title">Alarm-Zeiten</div>';
+            accordionsHtml += '<div id="alarm-offsets-list">';
             const alarmOffsets = getAlarmOffsets();
             alarmOffsets.forEach(offset => {
-                html += `<div class="alarm-offset-item">
+                accordionsHtml += `<div class="alarm-offset-item">
                     <select onchange="saveAlarmOffsetsFromUI()">${buildOffsetOptions(offset)}</select>
                     <button onclick="removeAlarmOffset(this)" title="Entfernen">×</button>
                 </div>`;
             });
-            html += '<button class="alarm-offset-add" onclick="addAlarmOffset()">+</button>';
-            html += '</div>';
+            accordionsHtml += '<button class="alarm-offset-add" onclick="addAlarmOffset()">+</button>';
+            accordionsHtml += '</div>';
 
             const currentStep = getAlarmOffsetStep();
-            html += `<div class="settings-row">
+            accordionsHtml += `<div class="settings-row">
                 <select class="alarm-offset-input" onchange="saveAlarmOffsetStep(this.value)">
                     ${[1,5,10,15,30].map(s => `<option value="${s}"${s === currentStep ? ' selected' : ''}>${s} min</option>`).join('')}
                 </select>
-                <span>Schrittweite für Alarm-Auswahl</span>
+                <span>Schrittweite</span>
             </div>`;
-            html += '</div>'; // close alarm-section
 
-            // Settings section (collapsible)
-            const settingsCollapsed = localStorage.getItem('settingsSectionCollapsed') === 'true';
-            html += `<div class="collapsible-header" onclick="toggleSection('settings-section','settingsSectionCollapsed')">
-                <h3>Einstellungen</h3>
-                <span class="collapsible-arrow">${settingsCollapsed ? '▶' : '▼'}</span>
-            </div>`;
-            html += `<div id="settings-section" class="collapsible-content ${settingsCollapsed ? 'collapsed' : 'open'}">`;
+            // Einstellungen subheading
+            accordionsHtml += '<div class="settings-section-title">Anzeige</div>';
 
             const fillerOn = localStorage.getItem('showFillerRows') !== 'false';
-            html += '<div class="settings-row">';
-            html += '<div class="toggle-pill" onclick="toggleFillerPill(this)">';
-            html += `<span class="${fillerOn ? 'active' : ''}">An</span><span class="${fillerOn ? '' : 'active'}">Aus</span>`;
-            html += '</div>';
-            html += '<span>Zeilen für freie Tage anzeigen</span>';
-            html += '</div>';
+            accordionsHtml += '<div class="settings-row">';
+            accordionsHtml += '<div class="toggle-pill" onclick="toggleFillerPill(this)">';
+            accordionsHtml += `<span class="${fillerOn ? 'active' : ''}">An</span><span class="${fillerOn ? '' : 'active'}">Aus</span>`;
+            accordionsHtml += '</div>';
+            accordionsHtml += '<span>Zeilen für freie Tage anzeigen</span>';
+            accordionsHtml += '</div>';
 
             const bannerOnSetting = localStorage.getItem('showNextShift') !== 'false';
-            html += '<div class="settings-row">';
-            html += '<div class="toggle-pill" onclick="toggleBannerPill(this)">';
-            html += `<span class="${bannerOnSetting ? 'active' : ''}">An</span><span class="${bannerOnSetting ? '' : 'active'}">Aus</span>`;
-            html += '</div>';
-            html += '<span>„Nächste Schicht in" anzeigen</span>';
-            html += '</div>';
+            accordionsHtml += '<div class="settings-row">';
+            accordionsHtml += '<div class="toggle-pill" onclick="toggleBannerPill(this)">';
+            accordionsHtml += `<span class="${bannerOnSetting ? 'active' : ''}">An</span><span class="${bannerOnSetting ? '' : 'active'}">Aus</span>`;
+            accordionsHtml += '</div>';
+            accordionsHtml += '<span>„Nächste Schicht in" anzeigen</span>';
+            accordionsHtml += '</div>';
 
-            html += '<div class="settings-row">';
-            html += '<div class="toggle-pill" onclick="toggleDauerFormat(this)">';
-            html += `<span class="${decimalDauerOn ? 'active' : ''}">An</span><span class="${decimalDauerOn ? '' : 'active'}">Aus</span>`;
-            html += '</div>';
-            html += '<span>Dauer als Dezimalzahl anzeigen</span>';
-            html += '</div>';
+            accordionsHtml += '<div class="settings-row">';
+            accordionsHtml += '<div class="toggle-pill" onclick="toggleDauerFormat(this)">';
+            accordionsHtml += `<span class="${decimalDauerOn ? 'active' : ''}">An</span><span class="${decimalDauerOn ? '' : 'active'}">Aus</span>`;
+            accordionsHtml += '</div>';
+            accordionsHtml += '<span>Dauer als Dezimalzahl</span>';
+            accordionsHtml += '</div>';
 
-            html += '<div class="settings-row">';
-            html += '<div class="toggle-pill" onclick="togglePauseFormat(this)">';
-            html += `<span class="${decimalPauseOn ? 'active' : ''}">An</span><span class="${decimalPauseOn ? '' : 'active'}">Aus</span>`;
-            html += '</div>';
-            html += '<span>Pause als Dezimalzahl anzeigen</span>';
-            html += '</div>';
+            accordionsHtml += '<div class="settings-row">';
+            accordionsHtml += '<div class="toggle-pill" onclick="togglePauseFormat(this)">';
+            accordionsHtml += `<span class="${decimalPauseOn ? 'active' : ''}">An</span><span class="${decimalPauseOn ? '' : 'active'}">Aus</span>`;
+            accordionsHtml += '</div>';
+            accordionsHtml += '<span>Pause als Dezimalzahl</span>';
+            accordionsHtml += '</div>';
 
             const darkOn = localStorage.getItem('colorTheme') !== 'light';
-            html += '<div class="settings-row">';
-            html += '<div class="toggle-pill" onclick="toggleDarkMode(this)">';
-            html += `<span class="${darkOn ? 'active' : ''}">An</span><span class="${darkOn ? '' : 'active'}">Aus</span>`;
-            html += '</div>';
-            html += '<span>Dunkles Design</span>';
-            html += '</div>';
+            accordionsHtml += '<div class="settings-row">';
+            accordionsHtml += '<div class="toggle-pill" onclick="toggleDarkMode(this)">';
+            accordionsHtml += `<span class="${darkOn ? 'active' : ''}">An</span><span class="${darkOn ? '' : 'active'}">Aus</span>`;
+            accordionsHtml += '</div>';
+            accordionsHtml += '<span>Dunkles Design</span>';
+            accordionsHtml += '</div>';
 
-            html += '</div>'; // close settings-section
+            accordionsHtml += '</div>'; // close settings-accordion
 
-            outputDiv.innerHTML = html;
+            document.getElementById('accordions').innerHTML = accordionsHtml;
 
             if (localStorage.getItem('showFillerRows') === 'false') {
                 document.querySelectorAll('tr.filler-row').forEach(row => row.style.display = 'none');
@@ -1039,15 +1063,16 @@
             }
         }
 
-        function toggleSection(sectionId, storageKey) {
-            const section = document.getElementById(sectionId);
+        function toggleSettingsSection() {
+            const section = document.getElementById('settings-accordion');
             const header = section.previousElementSibling;
-            const arrow = header.querySelector('.collapsible-arrow');
+            const arrow = header.querySelector('.toggle-past-link');
             const isOpen = section.classList.contains('open');
             section.classList.toggle('open', !isOpen);
             section.classList.toggle('collapsed', isOpen);
-            arrow.textContent = isOpen ? '▶' : '▼';
-            localStorage.setItem(storageKey, isOpen ? 'true' : 'false');
+            header.classList.toggle('open', !isOpen);
+            arrow.textContent = isOpen ? '▼' : '▲';
+            localStorage.setItem('settingsSectionCollapsed', isOpen ? 'true' : 'false');
         }
 
         function togglePastDays() {

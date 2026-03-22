@@ -181,6 +181,7 @@
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            font-size: 0.75em;
         }
 
         th {
@@ -811,7 +812,7 @@
                     <td>${escapeHtml(result.field5)}</td>
                     <td>${escapeHtml(result.field6)}</td>
                     <td data-col="dauer" data-raw="${escapeHtml(result.arbeitszeit || '')}">${escapeHtml(decimalDauerOn ? (result.arbeitszeit || '') : decimalToHm(result.arbeitszeit))}</td>
-                    <td data-col="pause" data-raw="${escapeHtml(result.pause || '')}">${escapeHtml(decimalPauseOn ? (result.pause || '-') : (result.pause ? decimalToHm(result.pause) : '-'))}</td>
+                    <td data-col="pause" data-raw="${escapeHtml(result.pause || '')}">${escapeHtml(decimalPauseOn ? (result.pause || '') : (result.pause ? decimalToHm(result.pause) : ''))}</td>
                     <td>${escapeHtml(result.kommentar || '')}</td>
                 </tr>`;
 
@@ -842,7 +843,7 @@
             outputDiv.innerHTML = html;
 
             let tableHtml = '<table>';
-            tableHtml += '<colgroup><col style="width:9%"><col style="width:8%"><col style="width:14%"><col style="width:14%"><col style="width:15%"><col style="width:15%"><col style="width:25%"></colgroup>';
+            tableHtml += '<colgroup><col style="width:11%"><col style="width:10%"><col style="width:18%"><col style="width:18%"><col style="width:17%"><col style="width:16%"><col style="width:10%"></colgroup>';
             tableHtml += '<thead><tr><th>Tag</th><th></th><th>Start</th><th>Ende</th><th>Dauer</th><th>Pause</th><th>Info</th></tr></thead>';
             tableHtml += '<tbody>';
             tableHtml += separator + pastRows + futureRows;
@@ -1072,7 +1073,7 @@
             if (isNaN(num)) return val;
             const h = Math.floor(num);
             const m = Math.round((num - h) * 60);
-            if (h > 0 && m > 0) return `${h}h${m}m`;
+            if (h > 0 && m > 0) return `${h}h ${m}m`;
             if (h > 0) return `${h}h`;
             if (m > 0) return `${m}m`;
             return val;
@@ -1096,7 +1097,7 @@
             off.classList.toggle('active', isOn);
             localStorage.setItem('formatPause', isOn ? 'false' : 'true');
             document.querySelectorAll('td[data-col="pause"]').forEach(td => {
-                td.textContent = !isOn ? (td.dataset.raw || '-') : (td.dataset.raw ? decimalToHm(td.dataset.raw) : '-');
+                td.textContent = !isOn ? (td.dataset.raw || '') : (td.dataset.raw ? decimalToHm(td.dataset.raw) : '');
             });
         }
 

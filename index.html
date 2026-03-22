@@ -32,7 +32,7 @@
             --text-subtle: #999;
             --text-heading: #333;
             --past-bg: #e9ecef;
-            --past-sep-bg: #d0d4d9;
+            --past-sep-bg: #e0e3e7;
             --filler-color: #bbb;
             --filler-bg: #f5f5f5;
             --banner-bg: #e9ecef;
@@ -56,7 +56,7 @@
             --text-subtle: #666;
             --text-heading: #ccc;
             --past-bg: #252525;
-            --past-sep-bg: #2d2d2d;
+            --past-sep-bg: #232323;
             --filler-color: #555;
             --filler-bg: #181818;
             --banner-bg: #252525;
@@ -254,34 +254,38 @@
 
         .past-separator td {
             background: var(--past-sep-bg);
-            padding: 0.35rem 0.4rem;
-            border-top: 1px solid var(--border);
-            border-left: 1px solid var(--border);
-            border-right: 1px solid var(--border);
-            border-bottom: 1px solid var(--border);
-            border-top-left-radius: 6px;
-            border-top-right-radius: 6px;
+            padding: 0.25rem 0.4rem;
+            border: none;
+            border-radius: 6px;
         }
-
         .past-separator-inner {
             display: flex;
-            justify-content: space-between;
+            justify-content: center;
             align-items: center;
+            gap: 0.5rem;
+        }
+        /* when expanded, add border around separator and connect to past-day box */
+        .past-separator:has(+ tr.past-day.show) td {
+            border: 1px solid var(--border);
+            border-bottom: none;
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
         }
 
         .past-separator-label {
             color: var(--text-muted);
-            font-size: 0.8rem;
+            font-size: 0.7rem;
+            font-style: italic;
         }
 
         .settings-accordion-header .past-separator-label {
-            font-size: 1rem;
-            font-weight: 600;
+            font-size: 0.85rem;
+            font-weight: 400;
         }
 
         .toggle-past-link {
             color: var(--text-muted);
-            font-size: 0.85rem;
+            font-size: 0.7rem;
             line-height: 1;
         }
 
@@ -312,11 +316,7 @@
         /* no top border on first past row — separator row is the top of the box */
         tr.past-separator + tr.past-day.show td { border-top: none; }
 
-        /* when collapsed, round the bottom corners of the separator too */
-        tr.past-separator:not(:has(+ tr.past-day.show)) td {
-            border-bottom-left-radius: 6px;
-            border-bottom-right-radius: 6px;
-        }
+        /* when collapsed, separator has full rounded corners (already set on .past-separator td) */
 
         /* rounded bottom corners on last past row */
         tr.past-day.show:not(:has(+ tr.past-day.show)) td:first-child { border-bottom-left-radius: 6px; }
@@ -478,7 +478,7 @@
 
         .settings-accordion-header {
             background: var(--past-sep-bg);
-            border: 1px solid var(--border);
+            border: none;
             border-radius: 6px;
             padding: 0.35rem 0.4rem;
             cursor: pointer;
@@ -491,11 +491,10 @@
         .settings-accordion-header.open {
             border-bottom-left-radius: 0;
             border-bottom-right-radius: 0;
-            border-bottom-color: transparent;
         }
 
         .settings-accordion-content {
-            border: 1px solid var(--border);
+            border: none;
             border-top: none;
             border-bottom-left-radius: 6px;
             border-bottom-right-radius: 6px;

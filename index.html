@@ -48,17 +48,17 @@
         [data-theme="dark"] {
             --bg: #121212;
             --surface: #1e1e1e;
-            --surface-alt: #2a2a2a;
+            --surface-alt: #1a1a1a;
             --border: #3a3a3a;
             --border-light: #2e2e2e;
             --text: #e0e0e0;
             --text-muted: #999;
             --text-subtle: #666;
             --text-heading: #ccc;
-            --past-bg: #252525;
-            --past-sep-bg: #232323;
+            --past-bg: #1e1e1e;
+            --past-sep-bg: #222;
             --filler-color: #555;
-            --filler-bg: #181818;
+            --filler-bg: #151515;
             --banner-bg: #252525;
             --banner-color: #aaa;
             --pill-active-bg: #555;
@@ -138,6 +138,11 @@
         #tableWrap {
             overflow: hidden;
         }
+        #tableWrap.table-card {
+            background: var(--surface-alt);
+            border-radius: 10px;
+            padding: 0.5rem;
+        }
 
         h2, h3 {
             font-size: var(--heading-font-size);
@@ -157,6 +162,8 @@
         th, td {
             padding: var(--cell-padding-v) 0;
             text-align: left;
+        }
+        td {
             border-bottom: 1px solid var(--border-light);
         }
 
@@ -841,6 +848,8 @@
             tableHtml += separator + pastRows + futureRows;
             tableHtml += '</tbody></table>';
             tableWrapDiv.innerHTML = tableHtml;
+            if (localStorage.getItem('tableCard') === 'true') tableWrapDiv.classList.add('table-card');
+            else tableWrapDiv.classList.remove('table-card');
             let accordionsHtml = '';
 
             // Combined settings accordion
@@ -917,6 +926,14 @@
             accordionsHtml += `<span class="${darkOn ? 'active' : ''}">An</span><span class="${darkOn ? '' : 'active'}">Aus</span>`;
             accordionsHtml += '</div>';
             accordionsHtml += '<span>Dunkles Design</span>';
+            accordionsHtml += '</div>';
+
+            const cardOn = localStorage.getItem('tableCard') === 'true';
+            accordionsHtml += '<div class="settings-row">';
+            accordionsHtml += '<div class="toggle-pill" onclick="toggleTableCard(this)">';
+            accordionsHtml += `<span class="${cardOn ? 'active' : ''}">An</span><span class="${cardOn ? '' : 'active'}">Aus</span>`;
+            accordionsHtml += '</div>';
+            accordionsHtml += '<span>Tabellen-Karte</span>';
             accordionsHtml += '</div>';
 
             const tFontIdx = parseInt(localStorage.getItem('tableFontIdx') || '2');
@@ -1092,6 +1109,16 @@
                 row.style.display = isOn ? 'none' : '';
             });
             localStorage.setItem('showFillerRows', isOn ? 'false' : 'true');
+        }
+
+        function toggleTableCard(pill) {
+            const [on, off] = pill.querySelectorAll('span');
+            const isOn = on.classList.contains('active');
+            on.classList.toggle('active', !isOn);
+            off.classList.toggle('active', isOn);
+            const wrap = document.getElementById('tableWrap');
+            if (wrap) wrap.classList.toggle('table-card', !isOn);
+            localStorage.setItem('tableCard', isOn ? 'false' : 'true');
         }
 
         function toggleBannerPill(pill) {

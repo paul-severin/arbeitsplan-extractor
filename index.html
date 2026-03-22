@@ -69,14 +69,14 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            padding: 0.5rem;
-            padding-left: max(0.5rem, env(safe-area-inset-left));
-            padding-right: max(0.5rem, env(safe-area-inset-right));
-            padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+            padding: 0;
+            padding-left: max(0px, env(safe-area-inset-left));
+            padding-right: max(0px, env(safe-area-inset-right));
+            padding-bottom: max(0px, env(safe-area-inset-bottom));
             margin: 0 auto;
             background: var(--bg);
             color: var(--text);
-            font-size: 0.9rem;
+            font-size: 1rem;
         }
 
         .upload-area {
@@ -120,8 +120,9 @@
         #results {
             background: var(--surface);
             border-radius: 4px;
-            padding: 0.75rem;
+            padding: 0;
             display: none;
+            overflow: hidden;
         }
 
         h2, h3 {
@@ -134,8 +135,9 @@
             width: 100%;
             border-collapse: separate;
             border-spacing: 0;
-            margin-top: 0.5rem;
-            font-size: 0.85rem;
+            margin-top: 0;
+            font-size: 1rem;
+            table-layout: fixed;
         }
 
         th, td {
@@ -150,16 +152,21 @@
         }
 
         th:not(:last-child), td:not(:last-child) {
-            width: 1%;
             white-space: nowrap;
-            padding-right: 0.75rem;
+            padding-right: 0.5rem;
+        }
+
+        td:last-child {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         th {
             background: var(--surface-alt);
             font-weight: 600;
             color: var(--text-heading);
-            font-size: 0.8rem;
+            font-size: 0.9rem;
         }
 
         tbody::before {
@@ -193,7 +200,7 @@
 
         p {
             margin: 0.3rem 0;
-            font-size: 0.85rem;
+            font-size: 0.9rem;
         }
 
 
@@ -201,7 +208,8 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.25rem;
+            padding: 0.5rem 0.5rem 0.25rem;
         }
 
         .upload-icon-btn {
@@ -326,10 +334,10 @@
 
         .next-shift-banner {
             background: var(--banner-bg);
-            border-radius: 8px;
-            padding: 0.4rem 0.75rem;
-            margin-bottom: 0.5rem;
-            font-size: 0.85rem;
+            border-radius: 0;
+            padding: 0.4rem 0.5rem;
+            margin-bottom: 0;
+            font-size: 0.9rem;
             color: var(--banner-color);
             display: flex;
             align-items: center;
@@ -425,11 +433,53 @@
 
         .settings-row {
             margin-top: 0.4rem;
-            font-size: 0.85rem;
+            font-size: 0.9rem;
             color: var(--text-muted);
             display: flex;
             align-items: center;
             gap: 0.75rem;
+        }
+
+        .collapsible-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0.5rem 0.3rem;
+            cursor: pointer;
+            border-top: 1px solid var(--border-light);
+            margin-top: 0.25rem;
+            user-select: none;
+        }
+
+        .collapsible-header h3 {
+            margin: 0;
+        }
+
+        .collapsible-arrow {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .collapsible-content {
+            overflow: hidden;
+            transition: max-height 0.25s ease, opacity 0.25s ease;
+            padding: 0 0.5rem;
+        }
+
+        .collapsible-content.open {
+            max-height: 600px;
+            opacity: 1;
+        }
+
+        .collapsible-content.collapsed {
+            max-height: 0;
+            opacity: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+        }
+
+        .collapsible-content.open > *:last-child {
+            margin-bottom: 0.5rem;
         }
 
     </style>
@@ -719,14 +769,19 @@
                 : '';
 
             html += '<table>';
+            html += '<colgroup><col style="width:9%"><col style="width:8%"><col style="width:14%"><col style="width:14%"><col style="width:15%"><col style="width:15%"><col style="width:25%"></colgroup>';
             html += '<thead><tr><th>Tag</th><th></th><th>Start</th><th>Ende</th><th>Dauer</th><th>Pause</th><th>Info</th></tr></thead>';
             html += '<tbody>';
             html += separator + pastRows + futureRows;
             html += '</tbody></table>';
 
-            // Build plain text for clipboard
-            // Alarm offsets section
-            html += '<h3 style="margin-top:1rem;">Alarm-Zeiten</h3>';
+            // Alarm offsets section (collapsible)
+            const alarmCollapsed = localStorage.getItem('alarmSectionCollapsed') === 'true';
+            html += `<div class="collapsible-header" onclick="toggleSection('alarm-section','alarmSectionCollapsed')">
+                <h3>Alarm-Zeiten</h3>
+                <span class="collapsible-arrow">${alarmCollapsed ? '▶' : '▼'}</span>
+            </div>`;
+            html += `<div id="alarm-section" class="collapsible-content ${alarmCollapsed ? 'collapsed' : 'open'}">`;
             html += '<div id="alarm-offsets-list" style="margin-top:0.5rem;">';
             const alarmOffsets = getAlarmOffsets();
             alarmOffsets.forEach(offset => {
@@ -738,7 +793,23 @@
             html += '<button class="alarm-offset-add" onclick="addAlarmOffset()">+</button>';
             html += '</div>';
 
-            html += '<h3 style="margin-top:1rem;">Einstellungen</h3>';
+            const currentStep = getAlarmOffsetStep();
+            html += `<div class="settings-row">
+                <select class="alarm-offset-input" onchange="saveAlarmOffsetStep(this.value)">
+                    ${[1,5,10,15,30].map(s => `<option value="${s}"${s === currentStep ? ' selected' : ''}>${s} min</option>`).join('')}
+                </select>
+                <span>Schrittweite für Alarm-Auswahl</span>
+            </div>`;
+            html += '</div>'; // close alarm-section
+
+            // Settings section (collapsible)
+            const settingsCollapsed = localStorage.getItem('settingsSectionCollapsed') === 'true';
+            html += `<div class="collapsible-header" onclick="toggleSection('settings-section','settingsSectionCollapsed')">
+                <h3>Einstellungen</h3>
+                <span class="collapsible-arrow">${settingsCollapsed ? '▶' : '▼'}</span>
+            </div>`;
+            html += `<div id="settings-section" class="collapsible-content ${settingsCollapsed ? 'collapsed' : 'open'}">`;
+
             const fillerOn = localStorage.getItem('showFillerRows') !== 'false';
             html += '<div class="settings-row">';
             html += '<div class="toggle-pill" onclick="toggleFillerPill(this)">';
@@ -777,13 +848,7 @@
             html += '<span>Dunkles Design</span>';
             html += '</div>';
 
-            const currentStep = getAlarmOffsetStep();
-            html += `<div class="settings-row">
-                <select class="alarm-offset-input" onchange="saveAlarmOffsetStep(this.value)">
-                    ${[1,5,10,15,30].map(s => `<option value="${s}"${s === currentStep ? ' selected' : ''}>${s} min</option>`).join('')}
-                </select>
-                <span>Schrittweite für Alarm-Auswahl</span>
-            </div>`;
+            html += '</div>'; // close settings-section
 
             outputDiv.innerHTML = html;
 
@@ -972,6 +1037,17 @@
                 document.documentElement.removeAttribute('data-theme');
                 localStorage.setItem('colorTheme', 'light');
             }
+        }
+
+        function toggleSection(sectionId, storageKey) {
+            const section = document.getElementById(sectionId);
+            const header = section.previousElementSibling;
+            const arrow = header.querySelector('.collapsible-arrow');
+            const isOpen = section.classList.contains('open');
+            section.classList.toggle('open', !isOpen);
+            section.classList.toggle('collapsed', isOpen);
+            arrow.textContent = isOpen ? '▶' : '▼';
+            localStorage.setItem(storageKey, isOpen ? 'true' : 'false');
         }
 
         function togglePastDays() {

@@ -177,6 +177,10 @@
             padding-right: 1rem;
         }
 
+        td[data-col="pause"] {
+            text-align: right;
+        }
+
         td:last-child {
             overflow: hidden;
             text-overflow: ellipsis;
@@ -854,7 +858,7 @@
             let accordionsHtml = '';
 
             // Combined settings accordion
-            const settingsCollapsed = localStorage.getItem('settingsSectionCollapsed') === 'true';
+            const settingsCollapsed = localStorage.getItem('settingsSectionCollapsed') !== 'false';
             accordionsHtml += `<div class="settings-accordion-header ${settingsCollapsed ? '' : 'open'}" onclick="toggleSettingsSection()">
                 <span class="past-separator-label">Einstellungen</span>
                 <span class="toggle-past-link">${settingsCollapsed ? '▼' : '▲'}</span>
@@ -938,7 +942,7 @@
             accordionsHtml += '</div>';
 
             const tFontIdx = parseInt(localStorage.getItem('tableFontIdx') || '2');
-            const hFontIdx = parseInt(localStorage.getItem('headingFontIdx') || '1');
+            const hFontIdx = parseInt(localStorage.getItem('headingFontIdx') || '2');
             const bodyPadIdx = parseInt(localStorage.getItem('bodyPaddingIdx') || '1');
 
             accordionsHtml += `<div class="settings-row"><input type="range" class="settings-slider" min="0" max="3" step="1" value="${tFontIdx}" oninput="saveTableFont(this.value)"><span>Schriftgröße Tabelle</span></div>`;
@@ -1198,19 +1202,8 @@
             errorDiv.innerHTML = `<div class="error">${escapeHtml(message)}</div>`;
         }
 
-        async function reloadWithClearCache() {
-            if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-                // Send message to service worker to clear caches
-                navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_CACHE' });
-
-                // Wait a bit for the cache clear, then reload
-                setTimeout(() => {
-                    location.reload();
-                }, 100);
-            } else {
-                // No service worker, just reload
-                location.reload();
-            }
+        function reloadWithClearCache() {
+            location.reload();
         }
 
         function escapeHtml(text) {
@@ -1225,7 +1218,7 @@
 
         function applyFontSettings() {
             const tIdx = parseInt(localStorage.getItem('tableFontIdx') || '2');
-            const hIdx = parseInt(localStorage.getItem('headingFontIdx') || '1');
+            const hIdx = parseInt(localStorage.getItem('headingFontIdx') || '2');
             const pIdx = parseInt(localStorage.getItem('bodyPaddingIdx') || '1');
             document.documentElement.style.setProperty('--table-font-size', TABLE_FONT_SIZES[tIdx]);
             document.documentElement.style.setProperty('--heading-font-size', HEADING_FONT_SIZES[hIdx]);

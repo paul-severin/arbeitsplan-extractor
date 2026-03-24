@@ -165,13 +165,13 @@
         th, td {
             padding: var(--cell-padding-v) 0;
             text-align: left;
+            line-height: 1.4rem;
         }
         td {
             border-bottom: 1px solid var(--border-light);
         }
 
-        th:first-child:not(.delete-cb-col), td:first-child:not(.delete-cb-col),
-        th.delete-cb-col + th, td.delete-cb-col + td {
+        th:first-child, td:first-child {
             text-align: right;
             padding-left: 0.4rem;
         }
@@ -199,19 +199,9 @@
             font-size: 0.9rem;
         }
 
-        thead tr th:first-child:not(.delete-cb-col),
-        thead tr th.delete-cb-col + th {
+        thead tr th:first-child {
             border-top-left-radius: 6px;
             border-bottom-left-radius: 6px;
-        }
-        table.delete-mode thead tr th.delete-cb-col + th {
-            border-top-left-radius: 0;
-            border-bottom-left-radius: 0;
-        }
-        table.delete-mode thead tr th.delete-cb-col {
-            border-top-left-radius: 6px;
-            border-bottom-left-radius: 6px;
-            background: var(--surface-alt);
         }
 
         thead tr th:last-child {
@@ -296,15 +286,11 @@
             color: var(--text);
         }
 
-        .past-separator td:not(.delete-cb-col) {
+        .past-separator td {
             background: var(--past-sep-bg);
             padding: 0.25rem 0.4rem;
             border: none;
             border-radius: 6px;
-        }
-        .past-separator td.delete-cb-col {
-            background: none;
-            padding: 0;
         }
         .past-separator-inner {
             display: flex;
@@ -343,10 +329,6 @@
             border: none;
             transition: max-height 0.25s ease, padding 0.25s ease, opacity 0.25s ease, line-height 0.25s ease;
         }
-        tr.past-day:not(.show) td.delete-cb-col {
-            display: none !important;
-        }
-
         tr.past-day.show td {
             max-height: 3rem;
             padding-top: var(--cell-padding-v);
@@ -357,8 +339,7 @@
             border-bottom: 1px solid var(--border);
         }
 
-        tr.past-day.show td:first-child:not(.delete-cb-col),
-        tr.past-day.show td.delete-cb-col + td { border-left: 1px solid var(--border); }
+        tr.past-day.show td:first-child { border-left: 1px solid var(--border); }
         tr.past-day.show td:last-child  { border-right: 1px solid var(--border); }
 
         /* no top border on first past row — separator row is the top of the box */
@@ -367,8 +348,7 @@
         /* when collapsed, separator has full rounded corners (already set on .past-separator td) */
 
         /* rounded bottom corners on last past row */
-        tr.past-day.show:not(:has(+ tr.past-day.show)) td:first-child:not(.delete-cb-col),
-        tr.past-day.show:not(:has(+ tr.past-day.show)) td.delete-cb-col + td { border-bottom-left-radius: 6px; }
+        tr.past-day.show:not(:has(+ tr.past-day.show)) td:first-child { border-bottom-left-radius: 6px; }
         tr.past-day.show:not(:has(+ tr.past-day.show)) td:last-child  { border-bottom-right-radius: 6px; }
 
         tr.filler-row td {
@@ -763,30 +743,28 @@
         }
 
 
-        /* Horizontal scroll in delete mode */
-        #tableWrap:has(table.delete-mode) {
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
+        /* Delete mode — replace Info column with checkboxes */
+        table.delete-mode td:last-child .info-text,
+        table.delete-mode th:last-child .info-label { display: none; }
+        table.delete-mode td:last-child .delete-cb { display: inline-block; }
+        table.delete-mode th:last-child .delete-label { display: inline; }
+        td:last-child .delete-cb,
+        th:last-child .delete-label { display: none; }
 
-        /* Checkbox column — hidden unless table is in delete mode */
-        #tableWrap table th.delete-cb-col,
-        #tableWrap table td.delete-cb-col {
-            display: none;
-            width: 2.2rem;
-            padding: 0;
+        table.delete-mode tr[data-idx] td:last-child {
             text-align: center;
-            vertical-align: middle;
+            font-size: inherit;
+            overflow: visible;
         }
-        #tableWrap table.delete-mode th.delete-cb-col,
-        #tableWrap table.delete-mode td.delete-cb-col {
-            display: table-cell;
+        tr.past-day:not(.show) td:last-child .delete-cb {
+            display: none !important;
         }
-        #tableWrap table.delete-mode td.delete-cb-col input[type="checkbox"] {
+        table.delete-mode td:last-child input[type="checkbox"] {
             -webkit-appearance: none;
             appearance: none;
             width: 1.2rem;
             height: 1.2rem;
+            vertical-align: middle;
             cursor: pointer;
             background: transparent;
             border: 1.5px solid var(--text-muted);
@@ -794,10 +772,10 @@
             margin: 0;
             position: relative;
         }
-        #tableWrap table.delete-mode td.delete-cb-col input[type="checkbox"]:checked {
+        table.delete-mode td:last-child input[type="checkbox"]:checked {
             border-color: #e74c3c;
         }
-        #tableWrap table.delete-mode td.delete-cb-col input[type="checkbox"]:checked::after {
+        table.delete-mode td:last-child input[type="checkbox"]:checked::after {
             content: '×';
             position: absolute;
             top: 50%;
@@ -1083,7 +1061,7 @@
                     if (gapDays > 0) {
                         const label = gapDays === 1 ? '1 Tag frei' : `${gapDays} Tage frei`;
                         const fillerRow = `<tr class="${prevIsPast ? 'past-day filler-row' : 'filler-row'}">
-                        <td class="delete-cb-col"></td><td></td><td colspan="6">${label}</td>
+                        <td></td><td colspan="6">${label}</td>
                     </tr>`;
                         if (prevIsPast) pastRows += fillerRow;
                         else futureRows += fillerRow;
@@ -1102,14 +1080,13 @@
                 }
 
                 const row = `<tr class="${isPast ? 'past-day' : ''}" data-idx="${idx}">
-                    <td class="delete-cb-col"><input type="checkbox"></td>
                     <td>${escapeHtml(result.field1)}</td>
                     <td>${escapeHtml(result.field2)}</td>
                     <td>${escapeHtml(result.field5)}</td>
                     <td>${escapeHtml(result.field6)}</td>
                     <td data-col="dauer" data-raw="${escapeHtml(result.arbeitszeit || '')}">${escapeHtml(decimalDauerOn ? (result.arbeitszeit || '') : decimalToHm(result.arbeitszeit))}</td>
                     <td data-col="pause" data-raw="${escapeHtml(result.pause || '')}">${escapeHtml(decimalPauseOn ? (result.pause || '') : (result.pause ? decimalToHm(result.pause) : ''))}</td>
-                    <td>${escapeHtml(result.kommentar || '')}</td>
+                    <td><span class="info-text">${escapeHtml(result.kommentar || '')}</span><input class="delete-cb" type="checkbox"></td>
                 </tr>`;
 
                 if (isPast) pastRows += row;
@@ -1136,14 +1113,14 @@
             }
 
             const separator = pastRows
-                ? `<tr class="past-separator" onclick="togglePastDays()" style="cursor:pointer;"><td colspan="8"><span class="past-separator-inner"><span class="past-separator-label">vergangene Tage ausgeblendet</span><span class="toggle-past-link">▼</span></span></td></tr>`
+                ? `<tr class="past-separator" onclick="togglePastDays()" style="cursor:pointer;"><td colspan="7"><span class="past-separator-inner"><span class="past-separator-label">vergangene Tage ausgeblendet</span><span class="toggle-past-link">▼</span></span></td></tr>`
                 : '';
 
             outputDiv.innerHTML = html;
 
             let tableHtml = '<table>';
-            tableHtml += '<colgroup><col style="width:11%"><col style="width:10%"><col style="width:18%"><col style="width:18%"><col style="width:17%"><col style="width:16%"><col style="width:10%"></colgroup>';
-            tableHtml += '<thead><tr><th class="delete-cb-col"></th><th>Tag</th><th></th><th>Start</th><th>Ende</th><th>Dauer</th><th>Pause</th><th>Info</th></tr></thead>';
+            tableHtml += '<colgroup><col style="width:11%"><col style="width:10%"><col style="width:18%"><col style="width:18%"><col style="width:15%"><col style="width:14%"><col style="width:14%"></colgroup>';
+            tableHtml += '<thead><tr><th>Tag</th><th></th><th>Start</th><th>Ende</th><th>Dauer</th><th>Pause</th><th><span class="info-label">Info</span><span class="delete-label">Löschen?</span></th></tr></thead>';
             tableHtml += '<tbody>';
             tableHtml += separator + pastRows + futureRows;
             tableHtml += '</tbody></table>';
@@ -1160,7 +1137,7 @@
             </div>`;
             accordionsHtml += `<div id="settings-accordion" class="settings-accordion-content ${settingsCollapsed ? 'collapsed' : 'open'}">`;
 
-            accordionsHtml += `<div class="settings-row" style="gap:0.4rem;padding-top:0.4rem;"><button class="add-shift-btn" id="deleteShiftBtn" onclick="toggleDeleteMode()"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg> Löschen</button><button class="add-shift-btn" onclick="openAddShiftDialog()">+ Schicht</button><button class="add-shift-btn" onclick="document.getElementById('fileInput').click()"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg> PDF</button></div>`;
+            accordionsHtml += `<div class="settings-row" style="gap:0.4rem;padding-top:0.4rem;"><button class="add-shift-btn" onclick="openAddShiftDialog()">+ Schicht</button><button class="add-shift-btn" onclick="document.getElementById('fileInput').click()"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg> PDF</button><button class="add-shift-btn" id="deleteShiftBtn" onclick="toggleDeleteMode()"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg> Löschen</button></div>`;
 
             // Wecker-Zeiten subheading
             accordionsHtml += '<div class="settings-section-title">Wecker-Zeiten</div>';

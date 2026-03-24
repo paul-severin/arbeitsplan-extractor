@@ -18,7 +18,7 @@
     <meta name="theme-color" content="#000000">
 
     <!-- Apply saved theme before paint to avoid flash -->
-    <script>(function(){if(localStorage.getItem('colorTheme')!=='light')document.documentElement.setAttribute('data-theme','dark');}());</script>
+    <script>(function(){var dark=localStorage.getItem('colorTheme')!=='light';if(dark)document.documentElement.setAttribute('data-theme','dark');document.documentElement.style.background=dark?'#121212':'#f5f5f5';}());</script>
 
     <style>
         :root {
@@ -552,6 +552,128 @@
             flex-shrink: 0;
         }
 
+        /* Add shift modal */
+        #addShiftDialog {
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.2rem 1.2rem 1rem;
+            width: min(90vw, 320px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            position: fixed;
+            top: 4rem;
+            left: 50%;
+            transform: translateX(-50%);
+            margin: 0;
+        }
+
+        #addShiftDialog::backdrop {
+            background: rgba(0,0,0,0.5);
+        }
+
+        #addShiftDialog h3 {
+            margin: 0 0 1rem;
+            font-size: var(--heading-font-size);
+            color: var(--text-heading);
+        }
+
+        .dialog-fields {
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+        }
+
+        .dialog-fields label {
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .dialog-fields input {
+            background: var(--surface-alt);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.4rem 0.5rem;
+            font-size: 1rem;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .date-input-row {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .date-input-row input {
+            flex: 1;
+        }
+
+        .shift-year-label {
+            font-size: 1rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        .dialog-calc {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            padding-top: 0.2rem;
+        }
+
+        .dialog-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .dialog-buttons button {
+            padding: 0.45rem 1rem;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: var(--surface-alt);
+            color: var(--text);
+            font-size: 0.95rem;
+            cursor: pointer;
+        }
+
+        .dialog-buttons button[type="submit"] {
+            background: var(--pill-active-bg);
+            color: var(--pill-active-color);
+            border-color: var(--pill-active-bg);
+        }
+
+        .dialog-buttons button[disabled] {
+            opacity: 0.4;
+            cursor: default;
+        }
+
+        .add-shift-btn {
+            display: block;
+            width: 100%;
+            margin-top: 0.5rem;
+            padding: 0.5rem;
+            background: none;
+            border: 1px dashed var(--border);
+            border-radius: 8px;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .add-shift-btn:hover {
+            border-color: var(--text-muted);
+            color: var(--text);
+        }
+
     </style>
 </head>
 <body>
@@ -569,6 +691,31 @@
         <div id="tableWrap"></div>
     </div>
     <div id="accordions"></div>
+
+    <dialog id="addShiftDialog">
+        <form id="addShiftForm" method="dialog">
+            <h3>Schicht hinzufügen</h3>
+            <div class="dialog-fields">
+                <label>Datum
+                    <div class="date-input-row">
+                        <input type="text" inputmode="numeric" id="shiftDate" placeholder="TT.MM" maxlength="5" autocomplete="off" required>
+                        <span id="shiftYear" class="shift-year-label"></span>
+                    </div>
+                </label>
+                <label>Start<input type="text" inputmode="numeric" id="shiftStart" placeholder="HH:MM" maxlength="5" autocomplete="off" required></label>
+                <label>Ende<input type="text" inputmode="numeric" id="shiftEnd" placeholder="HH:MM" maxlength="5" autocomplete="off" required></label>
+                <label>Info<input type="text" id="shiftInfo" value="m"></label>
+                <div class="dialog-calc">
+                    <span>Dauer: <strong id="shiftDauerPreview">—</strong></span>
+                    <span>Pause: <strong id="shiftPausePreview">—</strong></span>
+                </div>
+            </div>
+            <div class="dialog-buttons">
+                <button type="button" onclick="document.getElementById('addShiftDialog').close()">Abbrechen</button>
+                <button type="submit" id="addShiftSubmit" disabled>Hinzufügen</button>
+            </div>
+        </form>
+    </dialog>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script>
@@ -642,6 +789,15 @@
 
                 // Process the structured lines (grep for "Anwesenheitszeit")
                 const data = processText(allLines);
+
+                // Preserve manual entries from previous save
+                const existing = loadRawResults();
+                if (existing && existing.matches) {
+                    const manualEntries = existing.matches.filter(e => e.source === 'manual');
+                    data.matches = [...data.matches, ...manualEntries]
+                        .sort((a, b) => parseInt(a.field1) - parseInt(b.field1));
+                }
+
                 displayResults(data);
                 saveResults(data);
 
@@ -709,7 +865,8 @@
                             arbeitszeit: fields[6] || '',  // Duration (Anw)
                             pause: pause,
                             kommentar: kommentar,
-                            fullLine: line
+                            fullLine: line,
+                            source: 'pdf',
                         });
                     }
                 }
@@ -718,7 +875,10 @@
             return { matches, month };
         }
 
+        let _currentData = null;
+
         function displayResults(data) {
+            _currentData = data;
             resultsDiv.classList.add('visible');
             uploadArea.style.display = 'none';
 
@@ -853,7 +1013,7 @@
             tableHtml += '<tbody>';
             tableHtml += separator + pastRows + futureRows;
             tableHtml += '</tbody></table>';
-            tableWrapDiv.innerHTML = tableHtml;
+            tableWrapDiv.innerHTML = tableHtml + `<button class="add-shift-btn" onclick="openAddShiftDialog()">+ Schicht hinzufügen</button>`;
             if (localStorage.getItem('tableCard') === 'true') tableWrapDiv.classList.add('table-card');
             else tableWrapDiv.classList.remove('table-card');
             let accordionsHtml = '';
@@ -1072,6 +1232,25 @@
             return `in ${mins}m`;
         }
 
+        function calculateShiftDetails(startStr, endStr) {
+            const [sh, sm] = startStr.split(':').map(Number);
+            const [eh, em] = endStr.split(':').map(Number);
+            const bruttoMin = (eh * 60 + em) - (sh * 60 + sm);
+            if (bruttoMin <= 0) return { pause: '', arbeitszeit: '' };
+            const bruttoH = bruttoMin / 60;
+            let pauseH = 0;
+            if (bruttoH >= 9) pauseH = 0.75;
+            else if (bruttoH >= 6) pauseH = 0.5;
+            const dauerH = bruttoH - pauseH;
+            const fmt = (h) => h.toFixed(2).replace('.', ',');
+            return {
+                pause: pauseH > 0 ? fmt(pauseH) : '',
+                arbeitszeit: fmt(dauerH),
+            };
+        }
+
+        if (typeof module !== 'undefined') module.exports = { calculateShiftDetails };
+
         function decimalToHm(val) {
             if (!val || val === '-') return val || '-';
             const num = parseFloat(val.replace(',', '.'));
@@ -1187,6 +1366,13 @@
             }
         }
 
+        function loadRawResults() {
+            try {
+                const saved = localStorage.getItem('anwesenheitszeit_results');
+                return saved ? JSON.parse(saved) : null;
+            } catch { return null; }
+        }
+
         function loadSavedResults() {
             try {
                 const saved = localStorage.getItem('anwesenheitszeit_results');
@@ -1198,6 +1384,122 @@
                 console.error('Fehler beim Laden der Ergebnisse:', error);
             }
         }
+
+        function openAddShiftDialog() {
+            const dialog = document.getElementById('addShiftDialog');
+            document.getElementById('addShiftForm').reset();
+            document.getElementById('shiftInfo').value = 'm';
+            document.getElementById('shiftYear').textContent = new Date().getFullYear();
+            document.getElementById('shiftDauerPreview').textContent = '—';
+            document.getElementById('shiftPausePreview').textContent = '—';
+            document.getElementById('addShiftSubmit').disabled = true;
+            dialog.showModal();
+        }
+
+        function updateShiftPreview() {
+            const start = document.getElementById('shiftStart').value;
+            const end = document.getElementById('shiftEnd').value;
+            const dateVal = document.getElementById('shiftDate').value;
+            const submitBtn = document.getElementById('addShiftSubmit');
+            const dateOk = /^\d{2}\.\d{2}$/.test(dateVal);
+            const timeOk = /^\d{2}:\d{2}$/.test(start) && /^\d{2}:\d{2}$/.test(end);
+            if (dateOk && timeOk) {
+                const { pause, arbeitszeit } = calculateShiftDetails(start, end);
+                const decimalDauerOn = localStorage.getItem('formatDauer') === 'true';
+                const decimalPauseOn = localStorage.getItem('formatPause') === 'true';
+                document.getElementById('shiftDauerPreview').textContent =
+                    arbeitszeit ? (decimalDauerOn ? arbeitszeit : decimalToHm(arbeitszeit)) : '—';
+                document.getElementById('shiftPausePreview').textContent =
+                    pause ? (decimalPauseOn ? pause : decimalToHm(pause)) : '—';
+                submitBtn.disabled = !arbeitszeit;
+            } else {
+                document.getElementById('shiftDauerPreview').textContent = '—';
+                document.getElementById('shiftPausePreview').textContent = '—';
+                submitBtn.disabled = true;
+            }
+        }
+
+        function inferYear(digits) {
+            if (digits.length < 4) return new Date().getFullYear();
+            const mm = parseInt(digits.slice(2, 4), 10);
+            const now = new Date();
+            const currentMonth = now.getMonth() + 1;
+            return (mm >= 1 && mm <= 12 && mm < currentMonth)
+                ? now.getFullYear() + 1
+                : now.getFullYear();
+        }
+
+        (function setupShiftDialogInputs() {
+            const dateInput = document.getElementById('shiftDate');
+            const startInput = document.getElementById('shiftStart');
+            const endInput = document.getElementById('shiftEnd');
+            const infoInput = document.getElementById('shiftInfo');
+
+            function fmtDate(digits) {
+                if (digits.length <= 2) return digits;
+                return digits.slice(0,2) + '.' + digits.slice(2,4);
+            }
+            function fmtTime(digits) {
+                if (digits.length <= 2) return digits;
+                return digits.slice(0,2) + ':' + digits.slice(2,4);
+            }
+
+            dateInput.addEventListener('input', function() {
+                const digits = this.value.replace(/\D/g, '').slice(0, 4);
+                this.value = fmtDate(digits);
+                document.getElementById('shiftYear').textContent = inferYear(digits);
+                updateShiftPreview();
+                if (digits.length === 4) startInput.focus();
+            });
+            startInput.addEventListener('input', function() {
+                const digits = this.value.replace(/\D/g, '').slice(0, 4);
+                this.value = fmtTime(digits);
+                updateShiftPreview();
+                if (digits.length === 4) endInput.focus();
+            });
+            endInput.addEventListener('input', function() {
+                const digits = this.value.replace(/\D/g, '').slice(0, 4);
+                this.value = fmtTime(digits);
+                updateShiftPreview();
+                if (digits.length === 4) infoInput.focus();
+            });
+        })();
+
+        document.getElementById('addShiftForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const dateVal = document.getElementById('shiftDate').value; // "DD.MM"
+            const start = document.getElementById('shiftStart').value;
+            const end = document.getElementById('shiftEnd').value;
+            const info = document.getElementById('shiftInfo').value.trim();
+
+            const [dd, mm] = dateVal.split('.');
+            const digits = dateVal.replace(/\D/g, '');
+            const yyyy = inferYear(digits);
+            const dateObj = new Date(yyyy, parseInt(mm) - 1, parseInt(dd));
+            const day = String(dateObj.getDate());
+            const weekday = dateObj.toLocaleDateString('de-DE', { weekday: 'short' });
+            const { pause, arbeitszeit } = calculateShiftDetails(start, end);
+
+            const entry = {
+                field1: day,
+                field2: weekday,
+                field5: start,
+                field6: end,
+                arbeitszeit: arbeitszeit,
+                pause: pause,
+                kommentar: info,
+                source: 'manual',
+            };
+
+            if (!_currentData) return;
+            const matches = _currentData.matches || _currentData.results || _currentData;
+            matches.push(entry);
+            matches.sort((a, b) => parseInt(a.field1) - parseInt(b.field1));
+            _currentData.matches = matches;
+            saveResults(_currentData);
+            displayResults(_currentData);
+            document.getElementById('addShiftDialog').close();
+        });
 
         function showError(message) {
             errorDiv.innerHTML = `<div class="error">${escapeHtml(message)}</div>`;

@@ -85,8 +85,10 @@
         }
 
         .upload-area {
-            text-align: center;
-            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100dvh;
         }
 
         input[type="file"] {
@@ -168,7 +170,8 @@
             border-bottom: 1px solid var(--border-light);
         }
 
-        th:first-child, td:first-child {
+        th:first-child:not(.delete-cb-col), td:first-child:not(.delete-cb-col),
+        th.delete-cb-col + th, td.delete-cb-col + td {
             text-align: right;
             padding-left: 0.4rem;
         }
@@ -179,7 +182,7 @@
         }
 
         td[data-col="pause"] {
-            text-align: right;
+            text-align: center;
         }
 
         td:last-child {
@@ -196,9 +199,19 @@
             font-size: 0.9rem;
         }
 
-        thead tr th:first-child {
+        thead tr th:first-child:not(.delete-cb-col),
+        thead tr th.delete-cb-col + th {
             border-top-left-radius: 6px;
             border-bottom-left-radius: 6px;
+        }
+        table.delete-mode thead tr th.delete-cb-col + th {
+            border-top-left-radius: 0;
+            border-bottom-left-radius: 0;
+        }
+        table.delete-mode thead tr th.delete-cb-col {
+            border-top-left-radius: 6px;
+            border-bottom-left-radius: 6px;
+            background: var(--surface-alt);
         }
 
         thead tr th:last-child {
@@ -249,6 +262,24 @@
             padding: 0.5rem 0.5rem 0.25rem;
         }
 
+        .header-titles {
+            display: flex;
+            flex-direction: column;
+            gap: 0.05rem;
+        }
+
+        .header-month {
+            display: block;
+            font-size: calc(var(--heading-font-size) * 0.8);
+            color: var(--text-muted);
+            margin-bottom: 0.3rem;
+        }
+
+        .text-muted-setting {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
         .upload-icon-btn {
             background: none;
             border: 1px solid var(--border);
@@ -265,11 +296,15 @@
             color: var(--text);
         }
 
-        .past-separator td {
+        .past-separator td:not(.delete-cb-col) {
             background: var(--past-sep-bg);
             padding: 0.25rem 0.4rem;
             border: none;
             border-radius: 6px;
+        }
+        .past-separator td.delete-cb-col {
+            background: none;
+            padding: 0;
         }
         .past-separator-inner {
             display: flex;
@@ -291,10 +326,6 @@
             font-style: italic;
         }
 
-        .settings-accordion-header .past-separator-label {
-            font-size: 0.85rem;
-            font-weight: 400;
-        }
 
         .toggle-past-link {
             color: var(--text-muted);
@@ -312,6 +343,9 @@
             border: none;
             transition: max-height 0.25s ease, padding 0.25s ease, opacity 0.25s ease, line-height 0.25s ease;
         }
+        tr.past-day:not(.show) td.delete-cb-col {
+            display: none !important;
+        }
 
         tr.past-day.show td {
             max-height: 3rem;
@@ -323,7 +357,8 @@
             border-bottom: 1px solid var(--border);
         }
 
-        tr.past-day.show td:first-child { border-left: 1px solid var(--border); }
+        tr.past-day.show td:first-child:not(.delete-cb-col),
+        tr.past-day.show td.delete-cb-col + td { border-left: 1px solid var(--border); }
         tr.past-day.show td:last-child  { border-right: 1px solid var(--border); }
 
         /* no top border on first past row — separator row is the top of the box */
@@ -332,7 +367,8 @@
         /* when collapsed, separator has full rounded corners (already set on .past-separator td) */
 
         /* rounded bottom corners on last past row */
-        tr.past-day.show:not(:has(+ tr.past-day.show)) td:first-child { border-bottom-left-radius: 6px; }
+        tr.past-day.show:not(:has(+ tr.past-day.show)) td:first-child:not(.delete-cb-col),
+        tr.past-day.show:not(:has(+ tr.past-day.show)) td.delete-cb-col + td { border-bottom-left-radius: 6px; }
         tr.past-day.show:not(:has(+ tr.past-day.show)) td:last-child  { border-bottom-right-radius: 6px; }
 
         tr.filler-row td {
@@ -484,16 +520,16 @@
         }
 
         #accordions {
-            background: var(--surface);
+            background: var(--bg);
             border-radius: 4px;
             margin-top: 1rem;
         }
 
         .settings-accordion-header {
-            background: var(--past-sep-bg);
-            border: none;
+            background: var(--bg);
+            border: 1px solid var(--border);
             border-radius: 6px;
-            padding: 0.35rem 0.4rem;
+            padding: 0.25rem 0.4rem;
             cursor: pointer;
             display: flex;
             justify-content: space-between;
@@ -501,14 +537,19 @@
             user-select: none;
         }
 
+        .settings-accordion-header .past-separator-label {
+            font-size: 0.75rem;
+            color: var(--text-subtle);
+        }
+
         .settings-accordion-header.open {
+            border-bottom: none;
             border-bottom-left-radius: 0;
             border-bottom-right-radius: 0;
         }
 
         .settings-accordion-content {
             border: none;
-            border-top: none;
             border-bottom-left-radius: 6px;
             border-bottom-right-radius: 6px;
             overflow: hidden;
@@ -519,6 +560,8 @@
         .settings-accordion-content.open {
             max-height: 600px;
             opacity: 1;
+            border: 1px solid var(--border);
+            border-top: none;
         }
 
         .settings-accordion-content.collapsed {
@@ -547,11 +590,37 @@
         }
 
         .settings-slider {
-            width: 80px;
-            accent-color: var(--pill-active-bg);
+            -webkit-appearance: none;
+            appearance: none;
+            width: 180px;
             flex-shrink: 0;
+            height: 10px;
+            border-radius: 5px;
+            background: var(--border);
+            cursor: pointer;
+            margin: 10px 0;
         }
 
+        .settings-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 10px;
+            background: var(--pill-active-bg);
+            cursor: pointer;
+        }
+
+        .settings-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 10px;
+            background: var(--pill-active-bg);
+            border: none;
+            cursor: pointer;
+        }
+
+        /* Chooser modal */
         /* Add shift modal */
         #addShiftDialog {
             background: var(--surface);
@@ -562,7 +631,7 @@
             width: min(90vw, 320px);
             box-shadow: 0 8px 32px rgba(0,0,0,0.3);
             position: fixed;
-            top: 4rem;
+            top: 4.5rem;
             left: 50%;
             transform: translateX(-50%);
             margin: 0;
@@ -585,9 +654,10 @@
         }
 
         .dialog-fields label {
-            display: flex;
-            flex-direction: column;
-            gap: 0.2rem;
+            display: grid;
+            grid-template-columns: 3rem 1fr;
+            align-items: center;
+            gap: 0.5rem;
             font-size: 0.8rem;
             color: var(--text-muted);
         }
@@ -599,9 +669,12 @@
             border-radius: 6px;
             padding: 0.4rem 0.5rem;
             font-size: 1rem;
-            width: 100%;
             box-sizing: border-box;
         }
+
+        #shiftDay, #shiftMonth, #shiftStart, #shiftEnd, #shiftInfo { width: calc(9.75ch - 15px); }
+        .date-sep { color: var(--text-muted); font-size: 1rem; }
+        #shiftInfo { width: 8ch; }
 
         .date-input-row {
             display: flex;
@@ -610,7 +683,7 @@
         }
 
         .date-input-row input {
-            flex: 1;
+            flex: none;
         }
 
         .shift-year-label {
@@ -621,6 +694,7 @@
 
         .dialog-calc {
             display: flex;
+            justify-content: center;
             gap: 1rem;
             font-size: 0.9rem;
             color: var(--text-muted);
@@ -655,10 +729,18 @@
             cursor: default;
         }
 
-        .add-shift-btn {
-            display: block;
-            width: 100%;
+        .add-shift-row {
+            display: flex;
+            gap: 0.4rem;
             margin-top: 0.5rem;
+        }
+
+        .add-shift-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.3rem;
+            flex: 1;
             padding: 0.5rem;
             background: none;
             border: 1px dashed var(--border);
@@ -674,12 +756,68 @@
             color: var(--text);
         }
 
+        .add-shift-btn.delete-active {
+            border-color: #e74c3c;
+            color: #e74c3c;
+            border-style: solid;
+        }
+
+
+        /* Horizontal scroll in delete mode */
+        #tableWrap:has(table.delete-mode) {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Checkbox column — hidden unless table is in delete mode */
+        #tableWrap table th.delete-cb-col,
+        #tableWrap table td.delete-cb-col {
+            display: none;
+            width: 2.2rem;
+            padding: 0;
+            text-align: center;
+            vertical-align: middle;
+        }
+        #tableWrap table.delete-mode th.delete-cb-col,
+        #tableWrap table.delete-mode td.delete-cb-col {
+            display: table-cell;
+        }
+        #tableWrap table.delete-mode td.delete-cb-col input[type="checkbox"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 1.2rem;
+            height: 1.2rem;
+            cursor: pointer;
+            background: transparent;
+            border: 1.5px solid var(--text-muted);
+            border-radius: 4px;
+            margin: 0;
+            position: relative;
+        }
+        #tableWrap table.delete-mode td.delete-cb-col input[type="checkbox"]:checked {
+            border-color: #e74c3c;
+        }
+        #tableWrap table.delete-mode td.delete-cb-col input[type="checkbox"]:checked::after {
+            content: '×';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1rem;
+            font-weight: bold;
+            line-height: 1;
+            color: #e74c3c;
+        }
+
     </style>
 </head>
 <body>
     <div class="upload-area" id="uploadArea">
         <input type="file" id="fileInput" accept=".pdf">
-        <button class="btn" onclick="document.getElementById('fileInput').click()">PDF hochladen</button>
+        <button class="upload-icon-btn" onclick="document.getElementById('fileInput').click()" style="padding:0.75rem 1.4rem;font-size:1rem;gap:0.5rem;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            PDF hochladen
+        </button>
     </div>
 
     <div id="loading">Wird verarbeitet...</div>
@@ -696,15 +834,14 @@
         <form id="addShiftForm" method="dialog">
             <h3>Schicht hinzufügen</h3>
             <div class="dialog-fields">
-                <label>Datum
+                <label><span>Datum</span>
                     <div class="date-input-row">
-                        <input type="text" inputmode="numeric" id="shiftDate" placeholder="TT.MM" maxlength="5" autocomplete="off" required>
-                        <span id="shiftYear" class="shift-year-label"></span>
+                        <input type="text" inputmode="numeric" id="shiftDay" placeholder="TT" maxlength="2" autocomplete="off" required><span class="date-sep">.</span><input type="text" inputmode="numeric" id="shiftMonth" placeholder="MM" maxlength="2" autocomplete="off" required><span class="date-sep">.</span><span id="shiftYear" class="shift-year-label"></span>
                     </div>
                 </label>
-                <label>Start<input type="text" inputmode="numeric" id="shiftStart" placeholder="HH:MM" maxlength="5" autocomplete="off" required></label>
-                <label>Ende<input type="text" inputmode="numeric" id="shiftEnd" placeholder="HH:MM" maxlength="5" autocomplete="off" required></label>
-                <label>Info<input type="text" id="shiftInfo" value="m"></label>
+                <label><span>Start</span><input type="text" inputmode="numeric" id="shiftStart" placeholder="HH:MM" maxlength="5" autocomplete="off" required></label>
+                <label><span>Ende</span><input type="text" inputmode="numeric" id="shiftEnd" placeholder="HH:MM" maxlength="5" autocomplete="off" required></label>
+                <label><span>Info</span><input type="text" id="shiftInfo" value="m"></label>
                 <div class="dialog-calc">
                     <span>Dauer: <strong id="shiftDauerPreview">—</strong></span>
                     <span>Pause: <strong id="shiftPausePreview">—</strong></span>
@@ -794,9 +931,9 @@
                 const existing = loadRawResults();
                 if (existing && existing.matches) {
                     const manualEntries = existing.matches.filter(e => e.source === 'manual');
-                    data.matches = [...data.matches, ...manualEntries]
-                        .sort((a, b) => parseInt(a.field1) - parseInt(b.field1));
+                    data.matches = [...data.matches, ...manualEntries];
                 }
+                sortMatches(data);
 
                 displayResults(data);
                 saveResults(data);
@@ -876,6 +1013,7 @@
         }
 
         let _currentData = null;
+        let _deleteMode = false;
 
         function displayResults(data) {
             _currentData = data;
@@ -894,25 +1032,12 @@
             const today = new Date();
             today.setHours(0, 0, 0, 0);
 
+            const nowForHeader = new Date();
+            const todayWd = nowForHeader.toLocaleDateString('de-DE', { weekday: 'short' }).slice(0, 2);
+            const todayDd = String(nowForHeader.getDate()).padStart(2, '0');
+            const todayMm = String(nowForHeader.getMonth() + 1).padStart(2, '0');
+
             let html = '';
-            html += '<div class="header-row">';
-            if (month) {
-                let monthText = escapeHtml(month);
-                if (timestamp) {
-                    const date = new Date(timestamp);
-                    const day = String(date.getDate()).padStart(2, '0');
-                    const monthNum = String(date.getMonth() + 1).padStart(2, '0');
-                    monthText += ` <span class="meta-text">(hochgeladen am ${day}.${monthNum}.)</span>`;
-                }
-                html += `<h3 style="margin: 0;">${monthText}</h3>`;
-            } else {
-                html += `<h3 style="margin: 0;">Arbeitsplan</h3>`;
-            }
-            html += `<div style="display:flex;gap:0.4rem;">`;
-            html += `<button class="upload-icon-btn" onclick="reloadWithClearCache()" title="Neu laden"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></button>`;
-            html += `<button class="upload-icon-btn" onclick="document.getElementById('fileInput').click()" title="PDF hochladen"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg></button>`;
-            html += `</div>`;
-            html += '</div>';
 
             // Extract year and month number from month string (e.g. "März 2026")
             const monthNames = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
@@ -933,37 +1058,42 @@
             let pastRows = '';
             let futureRows = '';
             let nextShiftStart = null;
-            let prevDay = null;
+            let prevDate = null;
             let prevIsPast = false;
 
-            results.forEach(result => {
+            results.forEach((result, idx) => {
                 let isPast = false;
-                let rowDay = null;
+                let rowDate = null;
                 if (result.field1) {
                     const dateMatch = result.field1.match(/(\d{1,2})/);
                     if (dateMatch) {
-                        rowDay = parseInt(dateMatch[1], 10);
-                        const rowDate = new Date(pdfYear, pdfMonthNum - 1, rowDay);
+                        const rowDay = parseInt(dateMatch[1], 10);
+                        const rowYear = result.year || pdfYear;
+                        const rowMonth = result.month || pdfMonthNum;
+                        rowDate = new Date(rowYear, rowMonth - 1, rowDay);
                         rowDate.setHours(0, 0, 0, 0);
                         isPast = rowDate < today;
                     }
                 }
 
                 // Insert filler row if there's a gap of at least 1 day
-                if (rowDay !== null && prevDay !== null && rowDay - prevDay > 1) {
-                    const gapDays = rowDay - prevDay - 1;
-                    const label = gapDays === 1 ? '1 Tag frei' : `${gapDays} Tage frei`;
-                    const fillerRow = `<tr class="${prevIsPast ? 'past-day filler-row' : 'filler-row'}">
-                        <td></td><td colspan="6">${label}</td>
+                if (rowDate !== null && prevDate !== null) {
+                    const msPerDay = 86400000;
+                    const gapDays = Math.round((rowDate - prevDate) / msPerDay) - 1;
+                    if (gapDays > 0) {
+                        const label = gapDays === 1 ? '1 Tag frei' : `${gapDays} Tage frei`;
+                        const fillerRow = `<tr class="${prevIsPast ? 'past-day filler-row' : 'filler-row'}">
+                        <td class="delete-cb-col"></td><td></td><td colspan="6">${label}</td>
                     </tr>`;
-                    if (prevIsPast) pastRows += fillerRow;
-                    else futureRows += fillerRow;
+                        if (prevIsPast) pastRows += fillerRow;
+                        else futureRows += fillerRow;
+                    }
                 }
 
-                if (!isPast && rowDay && result.field5) {
+                if (!isPast && rowDate && result.field5) {
                     const timeMatch = result.field5.match(/(\d{1,2}):(\d{2})/);
                     if (timeMatch && nextShiftStart === null) {
-                        const shiftStart = new Date(pdfYear, pdfMonthNum - 1, rowDay,
+                        const shiftStart = new Date(rowDate.getFullYear(), rowDate.getMonth(), rowDate.getDate(),
                             parseInt(timeMatch[1], 10), parseInt(timeMatch[2], 10), 0, 0);
                         if (shiftStart > new Date()) {
                             nextShiftStart = shiftStart;
@@ -971,7 +1101,8 @@
                     }
                 }
 
-                const row = `<tr class="${isPast ? 'past-day' : ''}">
+                const row = `<tr class="${isPast ? 'past-day' : ''}" data-idx="${idx}">
+                    <td class="delete-cb-col"><input type="checkbox"></td>
                     <td>${escapeHtml(result.field1)}</td>
                     <td>${escapeHtml(result.field2)}</td>
                     <td>${escapeHtml(result.field5)}</td>
@@ -984,13 +1115,16 @@
                 if (isPast) pastRows += row;
                 else futureRows += row;
 
-                if (rowDay !== null) {
-                    prevDay = rowDay;
+                if (rowDate !== null) {
+                    prevDate = rowDate;
                     prevIsPast = isPast;
                 }
             });
 
             const bannerOn = localStorage.getItem('showNextShift') !== 'false';
+
+            html += `<div class="header-row"><h2 style="margin:0;">${todayWd} ${todayDd}.${todayMm}.</h2></div>`;
+
             if (nextShiftStart) {
                 html += `<div class="next-shift-banner" id="next-shift-banner" style="${bannerOn ? '' : 'display:none'}">
                     <span id="next-shift-text"></span>
@@ -1002,18 +1136,18 @@
             }
 
             const separator = pastRows
-                ? `<tr class="past-separator" onclick="togglePastDays()" style="cursor:pointer;"><td colspan="7"><span class="past-separator-inner"><span class="past-separator-label">vergangene Tage ausgeblendet</span><span class="toggle-past-link">▼</span></span></td></tr>`
+                ? `<tr class="past-separator" onclick="togglePastDays()" style="cursor:pointer;"><td colspan="8"><span class="past-separator-inner"><span class="past-separator-label">vergangene Tage ausgeblendet</span><span class="toggle-past-link">▼</span></span></td></tr>`
                 : '';
 
             outputDiv.innerHTML = html;
 
             let tableHtml = '<table>';
             tableHtml += '<colgroup><col style="width:11%"><col style="width:10%"><col style="width:18%"><col style="width:18%"><col style="width:17%"><col style="width:16%"><col style="width:10%"></colgroup>';
-            tableHtml += '<thead><tr><th>Tag</th><th></th><th>Start</th><th>Ende</th><th>Dauer</th><th>Pause</th><th>Info</th></tr></thead>';
+            tableHtml += '<thead><tr><th class="delete-cb-col"></th><th>Tag</th><th></th><th>Start</th><th>Ende</th><th>Dauer</th><th>Pause</th><th>Info</th></tr></thead>';
             tableHtml += '<tbody>';
             tableHtml += separator + pastRows + futureRows;
             tableHtml += '</tbody></table>';
-            tableWrapDiv.innerHTML = tableHtml + `<button class="add-shift-btn" onclick="openAddShiftDialog()">+ Schicht hinzufügen</button>`;
+            tableWrapDiv.innerHTML = (month ? `<span class="header-month">${escapeHtml(month)}</span>` : '') + tableHtml;
             if (localStorage.getItem('tableCard') === 'true') tableWrapDiv.classList.add('table-card');
             else tableWrapDiv.classList.remove('table-card');
             let accordionsHtml = '';
@@ -1021,13 +1155,15 @@
             // Combined settings accordion
             const settingsCollapsed = localStorage.getItem('settingsSectionCollapsed') !== 'false';
             accordionsHtml += `<div class="settings-accordion-header ${settingsCollapsed ? '' : 'open'}" onclick="toggleSettingsSection()">
-                <span class="past-separator-label">Einstellungen</span>
+                <span class="past-separator-label">Optionen</span>
                 <span class="toggle-past-link">${settingsCollapsed ? '▼' : '▲'}</span>
             </div>`;
             accordionsHtml += `<div id="settings-accordion" class="settings-accordion-content ${settingsCollapsed ? 'collapsed' : 'open'}">`;
 
-            // Alarm-Zeiten subheading
-            accordionsHtml += '<div class="settings-section-title">Alarm-Zeiten</div>';
+            accordionsHtml += `<div class="settings-row" style="gap:0.4rem;padding-top:0.4rem;"><button class="add-shift-btn" id="deleteShiftBtn" onclick="toggleDeleteMode()"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg> Löschen</button><button class="add-shift-btn" onclick="openAddShiftDialog()">+ Schicht</button><button class="add-shift-btn" onclick="document.getElementById('fileInput').click()"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg> PDF</button></div>`;
+
+            // Wecker-Zeiten subheading
+            accordionsHtml += '<div class="settings-section-title">Wecker-Zeiten</div>';
             accordionsHtml += '<div id="alarm-offsets-list">';
             const alarmOffsets = getAlarmOffsets();
             alarmOffsets.forEach(offset => {
@@ -1109,6 +1245,17 @@
             accordionsHtml += `<div class="settings-row"><input type="range" class="settings-slider" min="0" max="3" step="1" value="${tFontIdx}" oninput="saveTableFont(this.value)"><span>Schriftgröße Tabelle</span></div>`;
             accordionsHtml += `<div class="settings-row"><input type="range" class="settings-slider" min="0" max="3" step="1" value="${hFontIdx}" oninput="saveHeadingFont(this.value)"><span>Schriftgröße Überschriften</span></div>`;
             accordionsHtml += `<div class="settings-row"><input type="range" class="settings-slider" min="0" max="3" step="1" value="${bodyPadIdx}" oninput="saveBodyPadding(this.value)"><span>Außenabstand</span></div>`;
+
+            if (timestamp) {
+                const uploadDate = new Date(timestamp);
+                const upDay = String(uploadDate.getDate()).padStart(2, '0');
+                const upMonth = String(uploadDate.getMonth() + 1).padStart(2, '0');
+                const upYear = uploadDate.getFullYear();
+                const upHH = String(uploadDate.getHours()).padStart(2, '0');
+                const upMM = String(uploadDate.getMinutes()).padStart(2, '0');
+                accordionsHtml += `<div class="settings-row"><span class="text-muted-setting">Letzter PDF Upload: ${upDay}.${upMonth}.${upYear}, ${upHH}:${upMM}</span></div>`;
+            }
+            accordionsHtml += `<div class="settings-row"><button class="upload-icon-btn" onclick="reloadWithClearCache()" style="width:100%;justify-content:center;gap:0.4rem;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Neu laden</button></div>`;
 
             accordionsHtml += '</div>'; // close settings-accordion
 
@@ -1385,11 +1532,63 @@
             }
         }
 
+        function _updateDeleteBtnLabel() {
+            const btn = document.getElementById('deleteShiftBtn');
+            if (!btn) return;
+            const table = document.querySelector('#tableWrap table');
+            const hasChecked = table && table.querySelector('tbody tr[data-idx] input[type="checkbox"]:checked');
+            btn.lastChild.textContent = hasChecked ? ' Bestätigen' : ' Abbrechen';
+        }
+
+        function toggleDeleteMode() {
+            const table = document.querySelector('#tableWrap table');
+            const btn = document.getElementById('deleteShiftBtn');
+            if (!table) return;
+
+            if (!_deleteMode) {
+                _deleteMode = true;
+                table.classList.add('delete-mode');
+                if (btn) {
+                    btn.classList.add('delete-active');
+                    btn.lastChild.textContent = ' Abbrechen';
+                }
+                table.querySelectorAll('tbody tr[data-idx] input[type="checkbox"]').forEach(cb => {
+                    cb.addEventListener('change', _updateDeleteBtnLabel);
+                });
+            } else {
+                const checkedIndices = new Set();
+                table.querySelectorAll('tbody tr[data-idx] input[type="checkbox"]:checked').forEach(cb => {
+                    checkedIndices.add(parseInt(cb.closest('tr').dataset.idx, 10));
+                });
+                if (checkedIndices.size > 0) {
+                    const arr = _currentData.matches || _currentData.results || _currentData;
+                    const filtered = arr.filter((_, i) => !checkedIndices.has(i));
+                    if (Array.isArray(_currentData)) {
+                        _currentData = filtered;
+                    } else if (_currentData.matches) {
+                        _currentData = { ..._currentData, matches: filtered };
+                    } else if (_currentData.results) {
+                        _currentData = { ..._currentData, results: filtered };
+                    }
+                    localStorage.setItem('lastResults', JSON.stringify(_currentData));
+                    _deleteMode = false;
+                    displayResults(_currentData);
+                } else {
+                    _deleteMode = false;
+                    table.classList.remove('delete-mode');
+                    if (btn) {
+                        btn.classList.remove('delete-active');
+                        btn.lastChild.textContent = ' Löschen';
+                    }
+                }
+            }
+        }
+
         function openAddShiftDialog() {
             const dialog = document.getElementById('addShiftDialog');
             document.getElementById('addShiftForm').reset();
             document.getElementById('shiftInfo').value = 'm';
-            document.getElementById('shiftYear').textContent = new Date().getFullYear();
+            document.getElementById('shiftYear').textContent = inferYear(0);
             document.getElementById('shiftDauerPreview').textContent = '—';
             document.getElementById('shiftPausePreview').textContent = '—';
             document.getElementById('addShiftSubmit').disabled = true;
@@ -1399,11 +1598,11 @@
         function updateShiftPreview() {
             const start = document.getElementById('shiftStart').value;
             const end = document.getElementById('shiftEnd').value;
-            const dateVal = document.getElementById('shiftDate').value;
             const submitBtn = document.getElementById('addShiftSubmit');
-            const dateOk = /^\d{2}\.\d{2}$/.test(dateVal);
+            const dayOk = /^\d{2}$/.test(document.getElementById('shiftDay').value);
+            const monthOk = /^\d{2}$/.test(document.getElementById('shiftMonth').value);
             const timeOk = /^\d{2}:\d{2}$/.test(start) && /^\d{2}:\d{2}$/.test(end);
-            if (dateOk && timeOk) {
+            if (dayOk && monthOk && timeOk) {
                 const { pause, arbeitszeit } = calculateShiftDetails(start, end);
                 const decimalDauerOn = localStorage.getItem('formatDauer') === 'true';
                 const decimalPauseOn = localStorage.getItem('formatPause') === 'true';
@@ -1419,9 +1618,32 @@
             }
         }
 
-        function inferYear(digits) {
-            if (digits.length < 4) return new Date().getFullYear();
-            const mm = parseInt(digits.slice(2, 4), 10);
+        function entryToDate(entry, fallbackYear, fallbackMonth) {
+            const y = entry.year || fallbackYear;
+            const m = entry.month || fallbackMonth;
+            const d = parseInt(entry.field1, 10) || 0;
+            return new Date(y, m - 1, d);
+        }
+
+        function sortMatches(data) {
+            const monthNames = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
+                'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+            const now = new Date();
+            let fallbackYear = now.getFullYear();
+            let fallbackMonth = now.getMonth() + 1;
+            if (data.month) {
+                const yearMatch = data.month.match(/\d{4}/);
+                if (yearMatch) fallbackYear = parseInt(yearMatch[0], 10);
+                const monthName = data.month.replace(/\s*\d{4}$/, '').trim();
+                const idx = monthNames.indexOf(monthName);
+                if (idx !== -1) fallbackMonth = idx + 1;
+            }
+            (data.matches || []).sort((a, b) =>
+                entryToDate(a, fallbackYear, fallbackMonth) - entryToDate(b, fallbackYear, fallbackMonth)
+            );
+        }
+
+        function inferYear(mm) {
             const now = new Date();
             const currentMonth = now.getMonth() + 1;
             return (mm >= 1 && mm <= 12 && mm < currentMonth)
@@ -1430,52 +1652,66 @@
         }
 
         (function setupShiftDialogInputs() {
-            const dateInput = document.getElementById('shiftDate');
+            const dayInput   = document.getElementById('shiftDay');
+            const monthInput = document.getElementById('shiftMonth');
             const startInput = document.getElementById('shiftStart');
-            const endInput = document.getElementById('shiftEnd');
-            const infoInput = document.getElementById('shiftInfo');
+            const endInput   = document.getElementById('shiftEnd');
+            const infoInput  = document.getElementById('shiftInfo');
 
-            function fmtDate(digits) {
-                if (digits.length <= 2) return digits;
-                return digits.slice(0,2) + '.' + digits.slice(2,4);
-            }
             function fmtTime(digits) {
                 if (digits.length <= 2) return digits;
                 return digits.slice(0,2) + ':' + digits.slice(2,4);
             }
 
-            dateInput.addEventListener('input', function() {
-                const digits = this.value.replace(/\D/g, '').slice(0, 4);
-                this.value = fmtDate(digits);
-                document.getElementById('shiftYear').textContent = inferYear(digits);
+            function updateYear() {
+                const mm = parseInt(monthInput.value, 10);
+                document.getElementById('shiftYear').textContent = inferYear(isNaN(mm) ? 0 : mm);
+            }
+
+            dayInput.addEventListener('input', function() {
+                this.value = this.value.replace(/\D/g, '').slice(0, 2);
                 updateShiftPreview();
-                if (digits.length === 4) startInput.focus();
+                if (this.value.length === 2) monthInput.focus();
             });
-            startInput.addEventListener('input', function() {
-                const digits = this.value.replace(/\D/g, '').slice(0, 4);
-                this.value = fmtTime(digits);
+            monthInput.addEventListener('input', function() {
+                this.value = this.value.replace(/\D/g, '').slice(0, 2);
+                updateYear();
                 updateShiftPreview();
-                if (digits.length === 4) endInput.focus();
+                if (this.value.length === 2) startInput.focus();
             });
-            endInput.addEventListener('input', function() {
-                const digits = this.value.replace(/\D/g, '').slice(0, 4);
-                this.value = fmtTime(digits);
-                updateShiftPreview();
-                if (digits.length === 4) infoInput.focus();
-            });
+            function normalizeTime(input, onDone) {
+                input.addEventListener('input', function() {
+                    const digits = this.value.replace(/\D/g, '').slice(0, 4);
+                    this.value = fmtTime(digits);
+                    updateShiftPreview();
+                    if (digits.length === 4) onDone();
+                });
+                input.addEventListener('blur', function() {
+                    const digits = this.value.replace(/\D/g, '');
+                    if (digits.length === 1 || digits.length === 2) {
+                        this.value = digits.padStart(2, '0') + ':00';
+                        updateShiftPreview();
+                    }
+                });
+            }
+
+            normalizeTime(startInput, () => endInput.focus());
+            normalizeTime(endInput, () => infoInput.focus());
         })();
+
+        const _addDlg = document.getElementById('addShiftDialog');
+        _addDlg.addEventListener('click', e => { if (e.target === _addDlg) _addDlg.close(); });
 
         document.getElementById('addShiftForm').addEventListener('submit', function(e) {
             e.preventDefault();
-            const dateVal = document.getElementById('shiftDate').value; // "DD.MM"
+            const dd = document.getElementById('shiftDay').value;
+            const mm = document.getElementById('shiftMonth').value;
             const start = document.getElementById('shiftStart').value;
             const end = document.getElementById('shiftEnd').value;
             const info = document.getElementById('shiftInfo').value.trim();
 
-            const [dd, mm] = dateVal.split('.');
-            const digits = dateVal.replace(/\D/g, '');
-            const yyyy = inferYear(digits);
-            const dateObj = new Date(yyyy, parseInt(mm) - 1, parseInt(dd));
+            const yyyy = inferYear(parseInt(mm, 10));
+            const dateObj = new Date(yyyy, parseInt(mm, 10) - 1, parseInt(dd, 10));
             const day = String(dateObj.getDate());
             const weekday = dateObj.toLocaleDateString('de-DE', { weekday: 'short' });
             const { pause, arbeitszeit } = calculateShiftDetails(start, end);
@@ -1489,13 +1725,15 @@
                 pause: pause,
                 kommentar: info,
                 source: 'manual',
+                year: yyyy,
+                month: parseInt(mm, 10),
             };
 
             if (!_currentData) return;
             const matches = _currentData.matches || _currentData.results || _currentData;
             matches.push(entry);
-            matches.sort((a, b) => parseInt(a.field1) - parseInt(b.field1));
             _currentData.matches = matches;
+            sortMatches(_currentData);
             saveResults(_currentData);
             displayResults(_currentData);
             document.getElementById('addShiftDialog').close();

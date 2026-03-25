@@ -24,8 +24,24 @@ Extracts work schedule data from Arbeitsplan PDFs and displays it as a table. Sa
   gh run watch $(gh run list --limit 1 --json databaseId -q '.[0].databaseId')
   ```
 
+## Manual shift entries
+- Each entry has `source: "pdf" | "manual"`
+- PDF upload only replaces `source: "pdf"` entries; manual ones are preserved and re-merged
+- `_currentData` is the module-level variable holding the live results object
+- `loadRawResults()` reads from localStorage without calling `displayResults()`
+
+## Pause calculation
+- Pure function `calculateShiftDetails(startStr, endStr)` → `{ pause, arbeitszeit }` (decimal strings, e.g. `"0,50"`)
+- Rules: brutto ≥ 6h → 0,50 pause; ≥ 9h → 0,75 pause; Dauer = brutto − pause
+- Unit tests: `node test-shift-calc.js`
+
+## Add-shift modal
+- `<dialog id="addShiftDialog">` with `position: fixed; top: 4.5rem; left: 50%; transform: translateX(-50%)`
+- Date entered as separate day/month inputs (`shiftDay`, `shiftMonth`); year inferred via `inferYear(mm)` — next year if mm < current month
+- Backdrop click closes the dialog (click target === dialog element)
+
 ## Key behaviors
 - Past days (before today) are collapsed by default behind an accordion row
 - Accordion uses CSS animation via `max-height`/`opacity` on `td` elements (not `tr`, which can't animate height)
 - `border-collapse: separate` required for `border-radius` on table cells
-- Upload button appears in the results header once a PDF has been loaded
+- Settings/actions accordion is labelled "Optionen" (not "Einstellungen")

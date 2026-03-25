@@ -538,7 +538,7 @@
         }
 
         .settings-accordion-content.open {
-            max-height: 600px;
+            max-height: 900px;
             opacity: 1;
             border: 1px solid var(--border);
             border-top: none;
@@ -601,6 +601,26 @@
         }
 
         /* Chooser modal */
+        /* Confirm modal */
+        #confirmDialog {
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.2rem 1.2rem 1rem;
+            width: min(90vw, 300px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            position: fixed;
+            top: 4.5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            margin: 0;
+        }
+
+        #confirmDialog::backdrop {
+            background: rgba(0,0,0,0.5);
+        }
+
         /* Add shift modal */
         #addShiftDialog {
             background: var(--surface);
@@ -823,6 +843,14 @@
         <div id="tableWrap"></div>
     </div>
     <div id="accordions"></div>
+
+    <dialog id="confirmDialog">
+        <p id="confirmMessage" style="margin:0 0 1.2rem;font-size:1rem;color:var(--text);"></p>
+        <div class="dialog-buttons">
+            <button type="button" id="confirmCancel">Abbrechen</button>
+            <button type="button" id="confirmOk" style="background:#c0392b;color:#fff;border-color:#c0392b;">Löschen</button>
+        </div>
+    </dialog>
 
     <dialog id="addShiftDialog">
         <form id="addShiftForm" method="dialog">
@@ -1281,6 +1309,8 @@
                 accordionsHtml += `<div class="settings-row"><span class="text-muted-setting">Letzter PDF Upload: ${upDay}.${upMonth}.${upYear}, ${upHH}:${upMM}</span></div>`;
             }
             accordionsHtml += `<div class="settings-row"><button class="upload-icon-btn" onclick="reloadWithClearCache()" style="width:100%;justify-content:center;gap:0.4rem;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Neu laden</button></div>`;
+
+            accordionsHtml += `<div class="settings-row"><button class="upload-icon-btn" onclick="clearAllData()" style="width:100%;justify-content:center;gap:0.4rem;color:#e05252;">Alle Daten löschen</button></div>`;
 
             accordionsHtml += '</div>'; // close settings-accordion
 
@@ -1805,6 +1835,14 @@
 
         function reloadWithClearCache() {
             location.reload();
+        }
+
+        function clearAllData() {
+            const dlg = document.getElementById('confirmDialog');
+            document.getElementById('confirmMessage').textContent = 'Alle gespeicherten Daten löschen?';
+            dlg.showModal();
+            document.getElementById('confirmOk').onclick = () => { dlg.close(); localStorage.clear(); location.reload(); };
+            document.getElementById('confirmCancel').onclick = () => dlg.close();
         }
 
         function escapeHtml(text) {

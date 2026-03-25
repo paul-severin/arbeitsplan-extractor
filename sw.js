@@ -45,22 +45,7 @@ self.addEventListener('fetch', event => {
 
   const url = new URL(event.request.url);
 
-  // Fix Content-Type for .shortcut files so iOS opens them in Shortcuts app
-  if (url.pathname.endsWith('.shortcut')) {
-    event.respondWith(
-      fetch(event.request).then(response => new Response(response.body, {
-        status: response.status,
-        statusText: response.statusText,
-        headers: {
-          'Content-Type': 'application/x-apple-shortcut',
-          'Content-Disposition': 'attachment; filename="pwa-alarm.shortcut"',
-        },
-      }))
-    );
-    return;
-  }
-
-  const isNavigation = event.request.mode === 'navigate';
+const isNavigation = event.request.mode === 'navigate';
   const isOwnOrigin = url.origin === self.location.origin;
 
   // Network-first for navigation and same-origin assets (always get fresh content)

@@ -736,6 +736,14 @@
             color: var(--text);
         }
 
+        .field-error {
+            color: #e74c3c;
+            font-size: 0.75rem;
+            margin-top: 0.2rem;
+            display: none;
+        }
+        .field-error.visible { display: block; }
+
         .add-shift-btn.delete-active {
             border-color: #e74c3c;
             color: #e74c3c;
@@ -783,9 +791,23 @@
             transform: translate(-50%, -50%);
             font-size: 1rem;
             font-weight: bold;
-            line-height: 1;
+            line-height: 0;
             color: #e74c3c;
         }
+
+        tr.month-header-row td {
+            font-size: calc(var(--heading-font-size) * 0.8);
+            color: var(--text-muted);
+            padding: 0.5rem 0.4rem 0.15rem;
+            border: none;
+        }
+        tr.month-header-row.past-day.show td {
+            padding: 0.5rem 0.4rem 0.15rem;
+            border: none;
+            border-left: 1px solid var(--border);
+            border-right: 1px solid var(--border);
+        }
+        tr.month-header-row:hover { background: transparent; }
 
     </style>
 </head>
@@ -812,13 +834,22 @@
         <form id="addShiftForm" method="dialog">
             <h3>Schicht hinzufügen</h3>
             <div class="dialog-fields">
-                <label><span>Datum</span>
-                    <div class="date-input-row">
-                        <input type="text" inputmode="numeric" id="shiftDay" placeholder="TT" maxlength="2" autocomplete="off" required><span class="date-sep">.</span><input type="text" inputmode="numeric" id="shiftMonth" placeholder="MM" maxlength="2" autocomplete="off" required><span class="date-sep">.</span><span id="shiftYear" class="shift-year-label"></span>
-                    </div>
-                </label>
-                <label><span>Start</span><input type="text" inputmode="numeric" id="shiftStart" placeholder="HH:MM" maxlength="5" autocomplete="off" required></label>
-                <label><span>Ende</span><input type="text" inputmode="numeric" id="shiftEnd" placeholder="HH:MM" maxlength="5" autocomplete="off" required></label>
+                <div>
+                    <label><span>Datum</span>
+                        <div class="date-input-row">
+                            <input type="text" inputmode="numeric" id="shiftDay" placeholder="TT" maxlength="2" autocomplete="off" required><span class="date-sep">.</span><input type="text" inputmode="numeric" id="shiftMonth" placeholder="MM" maxlength="2" autocomplete="off" required><span class="date-sep">.</span><span id="shiftYear" class="shift-year-label"></span>
+                        </div>
+                    </label>
+                    <span class="field-error" id="errDate"></span>
+                </div>
+                <div>
+                    <label><span>Start</span><input type="text" inputmode="numeric" id="shiftStart" placeholder="HH:MM" maxlength="5" autocomplete="off" required></label>
+                    <span class="field-error" id="errStart"></span>
+                </div>
+                <div>
+                    <label><span>Ende</span><input type="text" inputmode="numeric" id="shiftEnd" placeholder="HH:MM" maxlength="5" autocomplete="off" required></label>
+                    <span class="field-error" id="errEnd"></span>
+                </div>
                 <label><span>Info</span><input type="text" id="shiftInfo" value="m"></label>
                 <div class="dialog-calc">
                     <span>Dauer: <strong id="shiftDauerPreview">—</strong></span>
@@ -859,6 +890,7 @@
                 handleFile(e.target.files[0]);
             }
         });
+        fileInput.addEventListener('click', () => { fileInput.value = ''; });
 
         async function handleFile(file) {
             errorDiv.innerHTML = '';
@@ -905,12 +937,18 @@
                 // Process the structured lines (grep for "Anwesenheitszeit")
                 const data = processText(allLines);
 
-                // Preserve manual entries from previous save
+                // Merge with existing data: replace only same-month PDF entries
                 const existing = loadRawResults();
                 if (existing && existing.matches) {
-                    const manualEntries = existing.matches.filter(e => e.source === 'manual');
-                    data.matches = [...data.matches, ...manualEntries];
+                    const newMonth = data.matches.length > 0 ? data.matches[0].month : null;
+                    const newYear = data.matches.length > 0 ? data.matches[0].year : null;
+                    const kept = existing.matches.filter(e => {
+                        if (e.source !== 'pdf') return true;
+                        return !(e.month === newMonth && e.year === newYear);
+                    });
+                    data.matches = [...kept, ...data.matches];
                 }
+                pruneToWindow(data);
                 sortMatches(data);
 
                 displayResults(data);
@@ -926,6 +964,8 @@
         function processText(allLines) {
             const matches = [];
             let month = null;
+            let pdfMonthNum = null;
+            let pdfYear = null;
 
             // Pass 1 — find x-position of "Pause" column header
             let pauseColX = null;
@@ -944,11 +984,11 @@
                         const dateStr = vonMatch[1]; // e.g., "01.03.2026"
                         const parts = dateStr.split('.');
                         if (parts.length === 3) {
-                            const monthNum = parseInt(parts[1], 10);
-                            const year = parts[2];
+                            pdfMonthNum = parseInt(parts[1], 10);
+                            pdfYear = parseInt(parts[2], 10);
                             const monthNames = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
                                               'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
-                            month = `${monthNames[monthNum - 1]} ${year}`;
+                            month = `${monthNames[pdfMonthNum - 1]} ${pdfYear}`;
                         }
                     }
                 }
@@ -982,6 +1022,8 @@
                             kommentar: kommentar,
                             fullLine: line,
                             source: 'pdf',
+                            year: pdfYear,
+                            month: pdfMonthNum,
                         });
                     }
                 }
@@ -1038,20 +1080,32 @@
             let nextShiftStart = null;
             let prevDate = null;
             let prevIsPast = false;
+            let prevEntryMonth = null;
+            let prevEntryYear = null;
 
             results.forEach((result, idx) => {
                 let isPast = false;
                 let rowDate = null;
+                const rowYear = result.year || pdfYear;
+                const rowMonth = result.month || pdfMonthNum;
                 if (result.field1) {
                     const dateMatch = result.field1.match(/(\d{1,2})/);
                     if (dateMatch) {
                         const rowDay = parseInt(dateMatch[1], 10);
-                        const rowYear = result.year || pdfYear;
-                        const rowMonth = result.month || pdfMonthNum;
                         rowDate = new Date(rowYear, rowMonth - 1, rowDay);
                         rowDate.setHours(0, 0, 0, 0);
                         isPast = rowDate < today;
                     }
+                }
+
+                // Insert month header row when month changes
+                if (rowMonth && rowYear && (rowMonth !== prevEntryMonth || rowYear !== prevEntryYear)) {
+                    const monthLabel = `${monthNames[rowMonth - 1]} ${rowYear}`;
+                    const monthRow = `<tr class="month-header-row${isPast ? ' past-day' : ''}"><td colspan="7">${escapeHtml(monthLabel)}</td></tr>`;
+                    if (isPast) pastRows += monthRow;
+                    else futureRows += monthRow;
+                    prevEntryMonth = rowMonth;
+                    prevEntryYear = rowYear;
                 }
 
                 // Insert filler row if there's a gap of at least 1 day
@@ -1124,7 +1178,7 @@
             tableHtml += '<tbody>';
             tableHtml += separator + pastRows + futureRows;
             tableHtml += '</tbody></table>';
-            tableWrapDiv.innerHTML = (month ? `<span class="header-month">${escapeHtml(month)}</span>` : '') + tableHtml;
+            tableWrapDiv.innerHTML = tableHtml;
             if (localStorage.getItem('tableCard') === 'true') tableWrapDiv.classList.add('table-card');
             else tableWrapDiv.classList.remove('table-card');
             let accordionsHtml = '';
@@ -1547,7 +1601,7 @@
                     } else if (_currentData.results) {
                         _currentData = { ..._currentData, results: filtered };
                     }
-                    localStorage.setItem('lastResults', JSON.stringify(_currentData));
+                    saveResults(_currentData);
                     _deleteMode = false;
                     displayResults(_currentData);
                 } else {
@@ -1576,9 +1630,12 @@
             const start = document.getElementById('shiftStart').value;
             const end = document.getElementById('shiftEnd').value;
             const submitBtn = document.getElementById('addShiftSubmit');
-            const dayOk = /^\d{2}$/.test(document.getElementById('shiftDay').value);
-            const monthOk = /^\d{2}$/.test(document.getElementById('shiftMonth').value);
-            const timeOk = /^\d{2}:\d{2}$/.test(start) && /^\d{2}:\d{2}$/.test(end);
+            const dayVal = parseInt(document.getElementById('shiftDay').value, 10);
+            const monthVal = parseInt(document.getElementById('shiftMonth').value, 10);
+            const dayOk = /^\d{2}$/.test(document.getElementById('shiftDay').value) && dayVal >= 1 && dayVal <= 31;
+            const monthOk = /^\d{2}$/.test(document.getElementById('shiftMonth').value) && monthVal >= 1 && monthVal <= 12;
+            const validHour = (t) => { const h = parseInt(t.split(':')[0], 10); return h >= 0 && h <= 23; };
+            const timeOk = /^\d{2}:\d{2}$/.test(start) && /^\d{2}:\d{2}$/.test(end) && validHour(start) && validHour(end);
             if (dayOk && monthOk && timeOk) {
                 const { pause, arbeitszeit } = calculateShiftDetails(start, end);
                 const decimalDauerOn = localStorage.getItem('formatDauer') === 'true';
@@ -1620,6 +1677,21 @@
             );
         }
 
+        function pruneToWindow(data) {
+            const today = new Date();
+            const cy = today.getFullYear(), cm = today.getMonth() + 1;
+            const allowed = [
+                { y: cm === 1 ? cy - 1 : cy, m: cm === 1 ? 12 : cm - 1 },
+                { y: cy, m: cm },
+                { y: cm === 12 ? cy + 1 : cy, m: cm === 12 ? 1 : cm + 1 },
+            ];
+            const key = (y, m) => y * 100 + m;
+            const set = new Set(allowed.map(a => key(a.y, a.m)));
+            data.matches = (data.matches || []).filter(e =>
+                e.year && e.month ? set.has(key(e.year, e.month)) : true
+            );
+        }
+
         function inferYear(mm) {
             const now = new Date();
             const currentMonth = now.getMonth() + 1;
@@ -1645,10 +1717,21 @@
                 document.getElementById('shiftYear').textContent = inferYear(isNaN(mm) ? 0 : mm);
             }
 
+            function showErr(id, msg) {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.textContent = msg;
+                el.classList.toggle('visible', !!msg);
+            }
+
             dayInput.addEventListener('input', function() {
                 this.value = this.value.replace(/\D/g, '').slice(0, 2);
                 updateShiftPreview();
                 if (this.value.length === 2) monthInput.focus();
+            });
+            dayInput.addEventListener('blur', function() {
+                const v = parseInt(this.value, 10);
+                showErr('errDate', this.value && (v < 1 || v > 31) ? 'Tag muss zwischen 1 und 31 liegen' : '');
             });
             monthInput.addEventListener('input', function() {
                 this.value = this.value.replace(/\D/g, '').slice(0, 2);
@@ -1656,7 +1739,11 @@
                 updateShiftPreview();
                 if (this.value.length === 2) startInput.focus();
             });
-            function normalizeTime(input, onDone) {
+            monthInput.addEventListener('blur', function() {
+                const v = parseInt(this.value, 10);
+                showErr('errDate', this.value && (v < 1 || v > 12) ? 'Monat muss zwischen 1 und 12 liegen' : '');
+            });
+            function normalizeTime(input, errId, onDone) {
                 input.addEventListener('input', function() {
                     const digits = this.value.replace(/\D/g, '').slice(0, 4);
                     this.value = fmtTime(digits);
@@ -1669,11 +1756,13 @@
                         this.value = digits.padStart(2, '0') + ':00';
                         updateShiftPreview();
                     }
+                    const h = parseInt(this.value.split(':')[0], 10);
+                    showErr(errId, this.value && !isNaN(h) && h > 23 ? 'Stunden müssen ≤ 23 sein' : '');
                 });
             }
 
-            normalizeTime(startInput, () => endInput.focus());
-            normalizeTime(endInput, () => infoInput.focus());
+            normalizeTime(startInput, 'errStart', () => endInput.focus());
+            normalizeTime(endInput, 'errEnd', () => infoInput.focus());
         })();
 
         const _addDlg = document.getElementById('addShiftDialog');

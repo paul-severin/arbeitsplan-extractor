@@ -27,6 +27,7 @@ Extracts work schedule data from Arbeitsplan PDFs and displays it as a table. Sa
 ## Manual shift entries
 - Each entry has `source: "pdf" | "manual"`
 - PDF upload only replaces `source: "pdf"` entries; manual ones are preserved and re-merged
+- Edited entries always get `source: "manual"` regardless of original source — intentional trade-off: re-importing a PDF after editing a PDF-sourced shift will produce both the edited entry and the fresh PDF entry for that day. This is acceptable; the alternative (overwriting manual edits on re-import) is worse.
 - `_currentData` is the module-level variable holding the live results object
 - `loadRawResults()` reads from localStorage without calling `displayResults()`
 

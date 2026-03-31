@@ -773,11 +773,27 @@
         }
 
 
+        .edit-row-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-muted);
+            padding: 0;
+            font-size: 0.95rem;
+            line-height: 1;
+            vertical-align: middle;
+            opacity: 0.6;
+            float: right;
+            margin-right: 0.2rem;
+        }
+        .edit-row-btn:active { opacity: 1; }
+
         /* Delete mode — replace Info column with checkboxes */
         table.delete-mode td:last-child .info-text,
         table.delete-mode th:last-child .info-label { display: none; }
         table.delete-mode td:last-child .delete-cb { display: inline-block; }
         table.delete-mode th:last-child .delete-label { display: inline; }
+        table.delete-mode td:last-child .edit-row-btn { display: none; }
         td:last-child .delete-cb,
         th:last-child .delete-label { display: none; }
 
@@ -868,7 +884,7 @@
 
     <dialog id="addShiftDialog">
         <form id="addShiftForm" method="dialog">
-            <h3>Schicht hinzufügen</h3>
+            <h3 id="addShiftDialogTitle">Schicht hinzufügen</h3>
             <div class="dialog-fields">
                 <div>
                     <label><span>Datum</span>
@@ -1070,6 +1086,7 @@
 
         let _currentData = null;
         let _deleteMode = false;
+        let _editingIdx = null;
 
         function displayResults(data) {
             _currentData = data;
@@ -1176,7 +1193,7 @@
                     <td>${escapeHtml(result.field6)}</td>
                     <td data-col="dauer" data-raw="${escapeHtml(result.arbeitszeit || '')}">${escapeHtml(decimalDauerOn ? (result.arbeitszeit || '') : decimalToHm(result.arbeitszeit))}</td>
                     <td data-col="pause" data-raw="${escapeHtml(result.pause || '')}">${escapeHtml(decimalPauseOn ? (result.pause || '') : (result.pause ? decimalToHm(result.pause) : ''))}</td>
-                    <td><span class="info-text">${escapeHtml(result.kommentar || '')}</span><input class="delete-cb" type="checkbox"></td>
+                    <td><span class="info-text">${escapeHtml(result.kommentar || '')}</span><button type="button" class="edit-row-btn" onclick="openEditShiftDialog(${idx})" title="Schicht bearbeiten">✎</button><input class="delete-cb" type="checkbox"></td>
                 </tr>`;
 
                 if (isPast) pastRows += row;
@@ -1670,6 +1687,9 @@
         }
 
         function openAddShiftDialog() {
+            _editingIdx = null;
+            document.getElementById('addShiftDialogTitle').textContent = 'Schicht hinzufügen';
+            document.getElementById('addShiftSubmit').textContent = 'Hinzufügen';
             const dialog = document.getElementById('addShiftDialog');
             document.getElementById('addShiftForm').reset();
             document.getElementById('shiftInfo').value = 'm';
@@ -1678,6 +1698,50 @@
             document.getElementById('shiftPausePreview').textContent = '—';
             document.getElementById('addShiftSubmit').disabled = true;
             dialog.showModal();
+        }
+
+        function openEditShiftDialog(idx) {
+            if (!_currentData) return;
+            const matches = _currentData.matches || _currentData.results || _currentData;
+            const entry = matches[idx];
+            if (!entry) return;
+
+            _editingIdx = idx;
+            document.getElementById('addShiftDialogTitle').textContent = 'Schicht bearbeiten';
+            document.getElementById('addShiftSubmit').textContent = 'Speichern';
+
+            // Derive year/month: manual entries store them on the entry;
+            // PDF entries fall back to the data-level month string.
+            let entryYear = entry.year;
+            let entryMonth = entry.month;
+            if (!entryYear || !entryMonth) {
+                const monthNames = ['Januar','Februar','März','April','Mai','Juni',
+                    'Juli','August','September','Oktober','November','Dezember'];
+                if (_currentData.month) {
+                    const ym = _currentData.month.match(/\d{4}/);
+                    if (ym) entryYear = parseInt(ym[0], 10);
+                    const mn = _currentData.month.replace(/\s*\d{4}$/, '').trim();
+                    const mi = monthNames.indexOf(mn);
+                    if (mi !== -1) entryMonth = mi + 1;
+                }
+                entryYear = entryYear || new Date().getFullYear();
+                entryMonth = entryMonth || (new Date().getMonth() + 1);
+            }
+
+            const dd = String(parseInt(entry.field1, 10)).padStart(2, '0');
+            const mm = String(entryMonth).padStart(2, '0');
+            document.getElementById('shiftDay').value = dd;
+            document.getElementById('shiftMonth').value = mm;
+            document.getElementById('shiftYear').textContent = entryYear;
+            document.getElementById('shiftStart').value = entry.field5 || '';
+            document.getElementById('shiftEnd').value = entry.field6 || '';
+            document.getElementById('shiftInfo').value = entry.kommentar || '';
+            document.getElementById('shiftDauerPreview').textContent = '—';
+            document.getElementById('shiftPausePreview').textContent = '—';
+            document.getElementById('addShiftSubmit').disabled = false;
+
+            updateShiftPreview();
+            document.getElementById('addShiftDialog').showModal();
         }
 
         function updateShiftPreview() {
@@ -1830,9 +1894,9 @@
             const end = document.getElementById('shiftEnd').value;
             const info = document.getElementById('shiftInfo').value.trim();
 
-            const yyyy = inferYear(parseInt(mm, 10));
+            const yyyy = parseInt(document.getElementById('shiftYear').textContent, 10) || inferYear(parseInt(mm, 10));
             const dateObj = new Date(yyyy, parseInt(mm, 10) - 1, parseInt(dd, 10));
-            const day = String(dateObj.getDate());
+            const day = String(dateObj.getDate()).padStart(2, '0');
             const weekday = dateObj.toLocaleDateString('de-DE', { weekday: 'short' });
             const { pause, arbeitszeit } = calculateShiftDetails(start, end);
 
@@ -1851,7 +1915,11 @@
 
             if (!_currentData) return;
             const matches = _currentData.matches || _currentData.results || _currentData;
-            matches.push(entry);
+            if (_editingIdx !== null) {
+                matches[_editingIdx] = entry;
+            } else {
+                matches.push(entry);
+            }
             _currentData.matches = matches;
             sortMatches(_currentData);
             saveResults(_currentData);

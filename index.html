@@ -1249,6 +1249,8 @@
             // Wecker-Zeiten subheading
             accordionsHtml += '<div class="settings-section-title">Wecker-Zeiten</div>';
             accordionsHtml += `<div class="settings-row" style="padding-bottom:0.2rem;"><a href="https://www.icloud.com/shortcuts/8210cea648aa45eda060109230483250" onclick="acknowledgeShortcut()" class="add-shift-btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:0.35rem;font-size:0.85rem;"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"/><path d="M12 8v8"/><path d="M8 12l4-4 4 4"/></svg>Shortcut installieren</a></div>`;
+            const shortcutName = localStorage.getItem('shortcutName') || 'PWA Alarm';
+            accordionsHtml += `<div class="settings-row"><input type="text" value="${shortcutName.replace(/"/g, '&quot;')}" placeholder="PWA Alarm" oninput="localStorage.setItem('shortcutName', this.value)" style="flex:1;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:0.3rem 0.5rem;font-size:0.9rem;"><span>Shortcut Name</span></div>`;
             accordionsHtml += '<div id="alarm-offsets-list">';
             const alarmOffsets = getAlarmOffsets();
             alarmOffsets.forEach(offset => {
@@ -1464,7 +1466,8 @@
                 const mm = String(alarmTime.getMinutes()).padStart(2, '0');
                 return hh + ':' + mm;
             });
-            window.location.href = `shortcuts://run-shortcut?name=PWA%20Alarm&input=text&text=${encodeURIComponent(times.join(','))}`;
+            const shortcutName = localStorage.getItem('shortcutName') || 'PWA Alarm';
+            window.location.href = `shortcuts://run-shortcut?name=${encodeURIComponent(shortcutName)}&input=text&text=${encodeURIComponent(times.join(','))}`;
         }
 
         function formatCountdown(ms) {

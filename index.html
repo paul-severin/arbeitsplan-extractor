@@ -1328,6 +1328,8 @@
             }
             accordionsHtml += `<div class="settings-row"><button class="upload-icon-btn" onclick="reloadWithClearCache()" style="width:100%;justify-content:center;gap:0.4rem;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Neu laden</button></div>`;
 
+            accordionsHtml += `<div class="settings-row"><button class="upload-icon-btn" onclick="resetSettings()" style="width:100%;justify-content:center;gap:0.4rem;color:#e05252;">Einstellungen zurücksetzen</button></div>`;
+            accordionsHtml += `<div class="settings-row"><button class="upload-icon-btn" onclick="clearShifts()" style="width:100%;justify-content:center;gap:0.4rem;color:#e05252;">Alle Schichten löschen</button></div>`;
             accordionsHtml += `<div class="settings-row"><button class="upload-icon-btn" onclick="clearAllData()" style="width:100%;justify-content:center;gap:0.4rem;color:#e05252;">Alle Daten löschen</button></div>`;
 
             accordionsHtml += '</div></div>'; // close max-width container + settings-accordion
@@ -1920,6 +1922,28 @@
 
         function reloadWithClearCache() {
             location.reload();
+        }
+
+        function resetSettings() {
+            const dlg = document.getElementById('confirmDialog');
+            document.getElementById('confirmMessage').textContent = 'Alle Einstellungen zurücksetzen?';
+            dlg.showModal();
+            document.getElementById('confirmOk').onclick = () => {
+                dlg.close();
+                ['colorTheme','formatDauer','formatPause','showFillerRows','tableCard','showNextShift',
+                 'settingsSectionCollapsed','shortcutName','alarmOffsets','alarmOffsetStep',
+                 'shortcutAcknowledged','tableFontIdx','headingFontIdx','bodyPaddingIdx'].forEach(k => localStorage.removeItem(k));
+                location.reload();
+            };
+            document.getElementById('confirmCancel').onclick = () => dlg.close();
+        }
+
+        function clearShifts() {
+            const dlg = document.getElementById('confirmDialog');
+            document.getElementById('confirmMessage').textContent = 'Alle Schichten löschen?';
+            dlg.showModal();
+            document.getElementById('confirmOk').onclick = () => { dlg.close(); localStorage.removeItem('anwesenheitszeit_results'); location.reload(); };
+            document.getElementById('confirmCancel').onclick = () => dlg.close();
         }
 
         function clearAllData() {

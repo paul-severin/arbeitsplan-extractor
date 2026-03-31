@@ -773,27 +773,11 @@
         }
 
 
-        .edit-row-btn {
-            background: none;
-            border: none;
-            cursor: pointer;
-            color: var(--text-muted);
-            padding: 0;
-            font-size: 0.95rem;
-            line-height: 1;
-            vertical-align: middle;
-            opacity: 0.6;
-            float: right;
-            margin-right: 0.2rem;
-        }
-        .edit-row-btn:active { opacity: 1; }
-
         /* Delete mode — replace Info column with checkboxes */
         table.delete-mode td:last-child .info-text,
         table.delete-mode th:last-child .info-label { display: none; }
         table.delete-mode td:last-child .delete-cb { display: inline-block; }
         table.delete-mode th:last-child .delete-label { display: inline; }
-        table.delete-mode td:last-child .edit-row-btn { display: none; }
         td:last-child .delete-cb,
         th:last-child .delete-label { display: none; }
 
@@ -1186,14 +1170,14 @@
                     }
                 }
 
-                const row = `<tr class="${isPast ? 'past-day' : ''}" data-idx="${idx}">
+                const row = `<tr class="${isPast ? 'past-day' : ''}" data-idx="${idx}" style="cursor:pointer;" onclick="if(!_deleteMode) openEditShiftDialog(${idx})">
                     <td>${escapeHtml(result.field1)}</td>
                     <td>${escapeHtml(result.field2)}</td>
                     <td>${escapeHtml(result.field5)}</td>
                     <td>${escapeHtml(result.field6)}</td>
                     <td data-col="dauer" data-raw="${escapeHtml(result.arbeitszeit || '')}">${escapeHtml(decimalDauerOn ? (result.arbeitszeit || '') : decimalToHm(result.arbeitszeit))}</td>
                     <td data-col="pause" data-raw="${escapeHtml(result.pause || '')}">${escapeHtml(decimalPauseOn ? (result.pause || '') : (result.pause ? decimalToHm(result.pause) : ''))}</td>
-                    <td><span class="info-text">${escapeHtml(result.kommentar || '')}</span><button type="button" class="edit-row-btn" onclick="openEditShiftDialog(${idx})" title="Schicht bearbeiten">✎</button><input class="delete-cb" type="checkbox"></td>
+                    <td><span class="info-text">${escapeHtml(result.kommentar || '')}</span><input class="delete-cb" type="checkbox"></td>
                 </tr>`;
 
                 if (isPast) pastRows += row;
@@ -1242,15 +1226,15 @@
                 <span class="past-separator-label">Optionen</span>
                 <span class="toggle-past-link">${settingsCollapsed ? '▼' : '▲'}</span>
             </div>`;
-            accordionsHtml += `<div id="settings-accordion" class="settings-accordion-content ${settingsCollapsed ? 'collapsed' : 'open'}">`;
+            accordionsHtml += `<div id="settings-accordion" class="settings-accordion-content ${settingsCollapsed ? 'collapsed' : 'open'}"><div style="max-width:350px;">`;
 
             accordionsHtml += `<div class="settings-row" style="gap:0.4rem;padding-top:0.4rem;"><button class="add-shift-btn" onclick="openAddShiftDialog()">+ Schicht</button><button class="add-shift-btn" onclick="document.getElementById('fileInput').click()"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg> PDF</button><button class="add-shift-btn" id="deleteShiftBtn" onclick="toggleDeleteMode()"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg> Löschen</button></div>`;
 
             // Wecker-Zeiten subheading
             accordionsHtml += '<div class="settings-section-title">Wecker-Zeiten</div>';
-            accordionsHtml += `<div class="settings-row" style="padding-bottom:0.2rem;"><a href="https://www.icloud.com/shortcuts/8210cea648aa45eda060109230483250" onclick="acknowledgeShortcut()" class="add-shift-btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:0.35rem;font-size:0.85rem;"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"/><path d="M12 8v8"/><path d="M8 12l4-4 4 4"/></svg>Shortcut installieren</a></div>`;
             const shortcutName = localStorage.getItem('shortcutName') || 'PWA Alarm';
-            accordionsHtml += `<div class="settings-row"><input type="text" value="${shortcutName.replace(/"/g, '&quot;')}" placeholder="PWA Alarm" oninput="localStorage.setItem('shortcutName', this.value)" style="flex:1;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:0.3rem 0.5rem;font-size:0.9rem;"><span>Shortcut Name</span></div>`;
+            accordionsHtml += `<div class="settings-row"><span>Shortcut Name</span><input type="text" value="${shortcutName.replace(/"/g, '&quot;')}" placeholder="PWA Alarm" oninput="localStorage.setItem('shortcutName', this.value)" style="flex:1;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:0.3rem 0.5rem;font-size:0.9rem;"></div>`;
+            accordionsHtml += `<div class="settings-row" style="padding-bottom:0.2rem;"><a href="https://www.icloud.com/shortcuts/8210cea648aa45eda060109230483250" onclick="acknowledgeShortcut()" class="add-shift-btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:0.35rem;font-size:0.85rem;"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"/><path d="M12 8v8"/><path d="M8 12l4-4 4 4"/></svg>Shortcut installieren</a></div>`;
             accordionsHtml += '<div id="alarm-offsets-list">';
             const alarmOffsets = getAlarmOffsets();
             alarmOffsets.forEach(offset => {
@@ -1346,7 +1330,7 @@
 
             accordionsHtml += `<div class="settings-row"><button class="upload-icon-btn" onclick="clearAllData()" style="width:100%;justify-content:center;gap:0.4rem;color:#e05252;">Alle Daten löschen</button></div>`;
 
-            accordionsHtml += '</div>'; // close settings-accordion
+            accordionsHtml += '</div></div>'; // close max-width container + settings-accordion
 
             document.getElementById('accordions').innerHTML = accordionsHtml;
 

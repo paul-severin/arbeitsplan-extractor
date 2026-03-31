@@ -859,7 +859,7 @@
         <p style="margin:0 0 1.2rem;font-size:0.88rem;color:var(--text-muted);line-height:1.4;">Der „PWA Alarm" Shortcut wird benötigt, um Wecker zu stellen. Einmalig installieren — danach funktioniert der Wecker-Button direkt.</p>
         <div class="dialog-buttons" style="gap:0.5rem;">
             <button type="button" onclick="acknowledgeShortcut(); document.getElementById('shortcutDialog').close()">Bereits installiert</button>
-            <a href="https://www.icloud.com/shortcuts/8210cea648aa45eda060109230483250" onclick="acknowledgeShortcut(); document.getElementById('shortcutDialog').close()" style="display:inline-flex;align-items:center;gap:0.4rem;padding:0.5rem 0.9rem;background:#007aff;color:#fff;border:none;border-radius:8px;font-size:0.9rem;font-weight:500;text-decoration:none;cursor:pointer;">
+            <a id="shortcutInstallLink" href="" onclick="acknowledgeShortcut(); document.getElementById('shortcutDialog').close()" style="display:inline-flex;align-items:center;gap:0.4rem;padding:0.5rem 0.9rem;background:#007aff;color:#fff;border:none;border-radius:8px;font-size:0.9rem;font-weight:500;text-decoration:none;cursor:pointer;">
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"/><path d="M12 8v8"/><path d="M8 12l4-4 4 4"/></svg>
                 Shortcut installieren
             </a>
@@ -913,10 +913,18 @@
         const accordionsDiv = document.getElementById('accordions');
         const errorDiv = document.getElementById('error');
 
+        const SHORTCUT_OPTIONS = [
+            { name: 'PWA Alarm', url: 'https://www.icloud.com/shortcuts/8210cea648aa45eda060109230483250' },
+            { name: 'PWA Alarm mit Löschen', url: 'https://www.icloud.com/shortcuts/5cf58bf91b4f451e80023d359f93796b' },
+        ];
+
         // Load saved results on page load
         window.addEventListener('DOMContentLoaded', () => {
             applyFontSettings();
             loadSavedResults();
+            const selectedName = localStorage.getItem('shortcutName') || SHORTCUT_OPTIONS[0].name;
+            const opt = SHORTCUT_OPTIONS.find(o => o.name === selectedName) || SHORTCUT_OPTIONS[0];
+            document.getElementById('shortcutInstallLink').href = opt.url;
         });
 
         // Drag and drop handlers
@@ -1232,9 +1240,9 @@
 
             // Wecker-Zeiten subheading
             accordionsHtml += '<div class="settings-section-title">Wecker-Zeiten</div>';
-            const shortcutName = localStorage.getItem('shortcutName') || 'PWA Alarm';
-            accordionsHtml += `<div class="settings-row"><span>Shortcut Name</span><input type="text" value="${shortcutName.replace(/"/g, '&quot;')}" placeholder="PWA Alarm" oninput="localStorage.setItem('shortcutName', this.value)" style="flex:1;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:0.3rem 0.5rem;font-size:0.9rem;"></div>`;
-            accordionsHtml += `<div class="settings-row" style="padding-bottom:0.2rem;"><a href="https://www.icloud.com/shortcuts/8210cea648aa45eda060109230483250" onclick="acknowledgeShortcut()" class="add-shift-btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:0.35rem;font-size:0.85rem;"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"/><path d="M12 8v8"/><path d="M8 12l4-4 4 4"/></svg>Shortcut installieren</a></div>`;
+            const shortcutName = localStorage.getItem('shortcutName') || SHORTCUT_OPTIONS[0].name;
+            const shortcutSelectOpts = SHORTCUT_OPTIONS.map(o => `<option value="${o.name}"${o.name === shortcutName ? ' selected' : ''}>${o.name}</option>`).join('');
+            accordionsHtml += `<div class="settings-row"><span>Shortcut</span><select onchange="localStorage.setItem('shortcutName', this.value)" style="flex:1;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:0.3rem 0.5rem;font-size:0.9rem;">${shortcutSelectOpts}</select><a href="${(SHORTCUT_OPTIONS.find(o=>o.name===shortcutName)||SHORTCUT_OPTIONS[0]).url}" onclick="acknowledgeShortcut()" class="add-shift-btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:0.35rem;font-size:0.85rem;white-space:nowrap;">installieren</a></div>`;
             accordionsHtml += '<div id="alarm-offsets-list">';
             const alarmOffsets = getAlarmOffsets();
             alarmOffsets.forEach(offset => {
@@ -1437,6 +1445,9 @@
                 // Store pending alarm data on the dialog so we can run it after install
                 const dlg = document.getElementById('shortcutDialog');
                 dlg._pendingBtn = btn;
+                const selectedName = localStorage.getItem('shortcutName') || SHORTCUT_OPTIONS[0].name;
+                const opt = SHORTCUT_OPTIONS.find(o => o.name === selectedName) || SHORTCUT_OPTIONS[0];
+                document.getElementById('shortcutInstallLink').href = opt.url;
                 dlg.showModal();
                 return;
             }
@@ -1452,7 +1463,7 @@
                 const mm = String(alarmTime.getMinutes()).padStart(2, '0');
                 return hh + ':' + mm;
             });
-            const shortcutName = localStorage.getItem('shortcutName') || 'PWA Alarm';
+            const shortcutName = localStorage.getItem('shortcutName') || SHORTCUT_OPTIONS[0].name;
             window.location.href = `shortcuts://run-shortcut?name=${encodeURIComponent(shortcutName)}&input=text&text=${encodeURIComponent(times.join(','))}`;
         }
 

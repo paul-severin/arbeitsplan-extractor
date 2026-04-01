@@ -1079,6 +1079,7 @@
         let _currentData = null;
         let _deleteMode = false;
         let _editingIdx = null;
+        let _editingOriginal = null;
 
         function displayResults(data) {
             _currentData = data;
@@ -1736,6 +1737,7 @@
             document.getElementById('shiftStart').value = entry.field5 || '';
             document.getElementById('shiftEnd').value = entry.field6 || '';
             document.getElementById('shiftInfo').value = entry.kommentar || '';
+            _editingOriginal = { day: dd, month: mm, start: entry.field5 || '', end: entry.field6 || '' };
             document.getElementById('shiftDauerPreview').textContent = '—';
             document.getElementById('shiftPausePreview').textContent = '—';
             document.getElementById('addShiftSubmit').disabled = false;
@@ -1892,7 +1894,15 @@
             const mm = document.getElementById('shiftMonth').value;
             const start = document.getElementById('shiftStart').value;
             const end = document.getElementById('shiftEnd').value;
-            const info = document.getElementById('shiftInfo').value.trim();
+            let info = document.getElementById('shiftInfo').value.trim();
+
+            if (_editingIdx !== null && _editingOriginal) {
+                const changed = dd !== _editingOriginal.day || mm !== _editingOriginal.month ||
+                    start !== _editingOriginal.start || end !== _editingOriginal.end;
+                if (changed) {
+                    info = info ? 'm ' + info : 'm';
+                }
+            }
 
             const yyyy = parseInt(document.getElementById('shiftYear').textContent, 10) || inferYear(parseInt(mm, 10));
             const dateObj = new Date(yyyy, parseInt(mm, 10) - 1, parseInt(dd, 10));
